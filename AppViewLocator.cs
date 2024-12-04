@@ -17,7 +17,7 @@ public class AppViewLocator : IViewLocator
         // AppViewLocator knows what view to display within itself.
         return viewModel switch
         {
-            BillTrackerViewModel _viewModel => new BillTrackerView { ViewModel = _viewModel },
+            BillDetailsViewModel _viewModel => new BillDetailsView { ViewModel = _viewModel },
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };
     }

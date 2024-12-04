@@ -27,6 +27,7 @@
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Themes.Simple.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Win32.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.X11.dll
+/mnt/storage/Documents/PockitBook/bin/Debug/net8.0/CommunityToolkit.Mvvm.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/DynamicData.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/HarfBuzzSharp.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/MicroCom.Runtime.dll
@@ -34,6 +35,8 @@
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Microsoft.CodeAnalysis.CSharp.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Microsoft.CodeAnalysis.CSharp.Scripting.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Microsoft.CodeAnalysis.Scripting.dll
+/mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Microsoft.Extensions.DependencyInjection.dll
+/mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/ReactiveUI.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/SkiaSharp.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Splat.dll

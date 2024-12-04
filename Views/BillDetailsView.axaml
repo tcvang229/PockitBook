@@ -1,9 +1,9 @@
 <UserControl 
     xmlns="https://github.com/avaloniaui"
     xmlns:vm="using:PockitBook.ViewModels"
-    x:DataType="vm:BillTrackerViewModel"
+    x:DataType="vm:BillDetailsViewModel"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="PockitBook.Views.BillTrackerView">
+    x:Class="PockitBook.Views.BillDetailsView">
     <StackPanel HorizontalAlignment="Center"
                 VerticalAlignment="Center">
         <TextBlock Text="{Binding UrlPathSegment}" />

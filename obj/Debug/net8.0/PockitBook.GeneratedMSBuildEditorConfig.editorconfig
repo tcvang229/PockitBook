@@ -4,6 +4,7 @@ build_property.AvaloniaNameGeneratorBehavior = InitializeComponent
 build_property.AvaloniaNameGeneratorDefaultFieldModifier = internal
 build_property.AvaloniaNameGeneratorFilterByPath = *
 build_property.AvaloniaNameGeneratorFilterByNamespace = *
+build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
 build_property.TargetFramework = net8.0
 build_property.TargetPlatformMinVersion = 
 build_property.UsingMicrosoftNETSdkWeb = 
@@ -20,7 +21,7 @@ build_property.EnableGeneratedComInterfaceComImportInterop =
 [/mnt/storage/Documents/PockitBook/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[/mnt/storage/Documents/PockitBook/Views/BillTrackerView.axaml]
+[/mnt/storage/Documents/PockitBook/Views/BillDetailsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/mnt/storage/Documents/PockitBook/Views/MainWindow.axaml]

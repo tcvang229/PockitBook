@@ -8,14 +8,18 @@ namespace PockitBook.Views;
 /// <summary>
 /// The Bill Tracker view code-behind.
 /// </summary>
-public partial class BillTrackerView : ReactiveUserControl<BillTrackerViewModel>
+public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
 {
     /// <summary>
     /// Constructor.
     /// </summary>
-    public BillTrackerView()
+    public BillDetailsView()
     {
-        this.WhenActivated(disposables => { });
         AvaloniaXamlLoader.Load(this);
+
+        this.WhenActivated(disposables => 
+        {
+            ViewModel!.InvokePageLoadedEvent();
+        });
     }
 }

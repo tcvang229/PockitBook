@@ -1,4 +1,6 @@
-﻿using System.Reactive;
+﻿using System;
+using System.Reactive;
+using System.Threading.Tasks;
 using ReactiveUI;
 
 namespace PockitBook.ViewModels;
@@ -9,29 +11,48 @@ namespace PockitBook.ViewModels;
 public class MainWindowViewModel : ViewModelBase, IScreen
 {
     /// <summary>
+    /// Constructor.
+    /// </summary>
+    /// <param name="router"></param>
+    /// <param name="backButtonManager"></param>
+    public MainWindowViewModel(RoutingState router)
+    {
+        GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
+            () => NavigateForward(new BillDetailsViewModel(this)));
+
+        Router = router;
+    }
+
+    /// <summary>
     /// The Router associated with this Screen.
     /// Required by the IScreen interface.
     /// </summary>
-    public RoutingState Router { get; } = new RoutingState();
+    public RoutingState Router { get; }
 
     /// <summary>
-    /// The command that navigates a user to first view model.
+    /// Command to navigate to the previous view.
     /// </summary>
-    public ReactiveCommand<Unit, IRoutableViewModel> GoNext { get; }
+    public ReactiveCommand<Unit, IRoutableViewModel?> GoToPreviousView => Router.NavigateBack;
 
     /// <summary>
-    /// The command that navigates a user back.
+    /// Command to navigate to the Bill Details view.
     /// </summary>
-    public ReactiveCommand<Unit, IRoutableViewModel?> GoBack => Router.NavigateBack;
+    public ReactiveCommand<Unit, IRoutableViewModel> GoToBillDetailsView { get; }
 
-    /// <summary>
-    /// Constructor.
-    /// </summary>
-    public MainWindowViewModel()
+    protected override async void OnPageLoadedEventHandler()
     {
-        GoNext = ReactiveCommand.CreateFromObservable(
-            () => Router.Navigate.Execute(new BillTrackerViewModel(this)));
+        var waitTime = 2 * 1000;
+        await Task.Delay(waitTime);
+        NavigateForward(new BillDetailsViewModel(this));
+    }
 
-        Router.Navigate.Execute(new BillTrackerViewModel(this));
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="viewModel"></param>
+    /// <returns></returns>
+    private IObservable<IRoutableViewModel> NavigateForward(BillDetailsViewModel viewModel)
+    {
+        return Router.Navigate.Execute(viewModel);
     }
 }

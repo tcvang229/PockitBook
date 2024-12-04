@@ -10,34 +10,24 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="PockitBook">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <rxui:RoutedViewHost Grid.Row="0" Router="{Binding Router}">
-            <!-- <rxui:RoutedViewHost.DefaultContent>
-                <TextBlock Text="Default content"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center" />
-            </rxui:RoutedViewHost.DefaultContent> -->
+    <Grid RowDefinitions="*" ColumnDefinitions="Auto,*">
+        <StackPanel Grid.Column="0">
+            <Button Name="BackNavButton" Content="Go Back"/>
+            <Button Name="BillDetailsNavButton" Content="Bill Details" />
+            <Button Name="AccountTrackerNavButton" Content="Account Tracker" />
+        </StackPanel>
+        <rxui:RoutedViewHost Grid.Column="1" Router="{Binding Router}">
+
+            <!-- DEFAULT VIEW CONTENT GOES HERE -->
+            <rxui:RoutedViewHost.DefaultContent>
+                <Image Source="/Assets/logo.png"/>
+                <!-- <TextBlock Text="Welcome Pockit Book"/> -->
+            </rxui:RoutedViewHost.DefaultContent>
+
             <rxui:RoutedViewHost.ViewLocator>
-                <!-- See AppViewLocator.cs section below -->
+                <!-- SEE APPVIEWLOCATOR.CS -->
                 <app:AppViewLocator />
             </rxui:RoutedViewHost.ViewLocator>
         </rxui:RoutedViewHost>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="15">
-            <StackPanel.Styles>
-                <Style Selector="StackPanel > :is(Control)">
-                    <Setter Property="Margin" Value="2"/>
-                </Style>
-                <Style Selector="StackPanel > TextBlock">
-                    <Setter Property="VerticalAlignment" Value="Center"/>
-                </Style>
-            </StackPanel.Styles>
-            <Button Content="Go next" Command="{Binding GoNext}" />
-            <Button Content="Go back" Command="{Binding GoBack}" />
-            <TextBlock Text="{Binding Router.NavigationStack.Count}" />
-        </StackPanel>
     </Grid>
 </Window>
