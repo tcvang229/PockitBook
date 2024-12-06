@@ -7,7 +7,7 @@ using ReactiveUI;
 namespace PockitBook.ViewModels;
 
 /// <summary>
-/// Main Window view model.
+/// The Main Window view model. 
 /// </summary>
 public class MainWindowViewModel : ViewModelBase, IScreen
 {
@@ -19,7 +19,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     public MainWindowViewModel(RoutingState router)
     {
         GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
-            () => NavigateForward(new BillDetailsViewModel(this)));
+            () => NavigateForward(Constants.AppViews.BillDetailsView));
 
         Router = router;
     }
@@ -48,17 +48,22 @@ public class MainWindowViewModel : ViewModelBase, IScreen
             await Task.Delay(waitTime);
 
             Dispatcher.UIThread.Post(() =>
-                NavigateForward(new BillDetailsViewModel(this)));
+                NavigateForward(Constants.AppViews.HomeView));
         });
     }
 
     /// <summary>
-    /// 
+    /// Navigates forward to the targeted view.
     /// </summary>
     /// <param name="viewModel"></param>
     /// <returns></returns>
-    private IObservable<IRoutableViewModel> NavigateForward(BillDetailsViewModel viewModel)
+    private IObservable<IRoutableViewModel> NavigateForward(Constants.AppViews viewToNavigate)
     {
-        return Router.Navigate.Execute(viewModel);
+        return viewToNavigate switch
+        {
+            Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
+            Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this)),
+            _ => throw new Exception("Cannot navigate to page, the page does not exist.")
+        };
     }
 }

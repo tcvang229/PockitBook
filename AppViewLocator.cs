@@ -7,6 +7,7 @@ namespace PockitBook;
 
 /// <summary>
 /// Carries the responsibility to choose the right view and view model to display.
+/// Reference: https://www.reactiveui.net/docs/handbook/routing.html#view-location
 /// </summary>
 public class AppViewLocator : IViewLocator
 {
@@ -18,6 +19,7 @@ public class AppViewLocator : IViewLocator
         return viewModel switch
         {
             BillDetailsViewModel _viewModel => new BillDetailsView { ViewModel = _viewModel },
+            HomeViewModel _viewModel => new HomeView { ViewModel = _viewModel },
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };
     }

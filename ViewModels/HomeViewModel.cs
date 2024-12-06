@@ -1,6 +1,7 @@
 using System;
-using PockitBook.ViewModels;
 using ReactiveUI;
+
+namespace PockitBook.ViewModels;
 
 /// <summary>
 /// The view model for the Home View.

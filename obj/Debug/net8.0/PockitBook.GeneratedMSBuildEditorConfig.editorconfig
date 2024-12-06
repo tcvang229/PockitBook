@@ -24,5 +24,8 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 [/mnt/storage/Documents/PockitBook/Views/BillDetailsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
+[/mnt/storage/Documents/PockitBook/Views/HomeView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
 [/mnt/storage/Documents/PockitBook/Views/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

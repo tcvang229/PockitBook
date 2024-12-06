@@ -1,3 +1,4 @@
+using System.Reactive.Disposables;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
 using PockitBook.ViewModels;
@@ -6,14 +7,14 @@ using ReactiveUI;
 namespace PockitBook.Views;
 
 /// <summary>
-/// The code-behind for the Bill Details View.
+/// The code-behind for the Home View.
 /// </summary>
-public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
+public partial class HomeView : ReactiveUserControl<HomeViewModel>
 {
     /// <summary>
     /// Constructor.
     /// </summary>
-    public BillDetailsView()
+    public HomeView()
     {
         AvaloniaXamlLoader.Load(this);
 
