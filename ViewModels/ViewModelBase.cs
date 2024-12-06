@@ -1,5 +1,5 @@
 ﻿using ReactiveUI;
-using System;
+using System.Threading.Tasks;
 
 namespace PockitBook.ViewModels;
 
@@ -31,7 +31,7 @@ public class ViewModelBase : ReactiveObject, IActivatableViewModel
     /// <summary>
     /// Event handler for Page Loaded event.
     /// </summary>
-    protected virtual async void OnPageLoadedEventHandler()
+    protected virtual void OnPageLoadedEventHandler()
     {
     }
 }

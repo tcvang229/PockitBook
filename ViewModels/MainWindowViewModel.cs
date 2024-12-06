@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reactive;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using ReactiveUI;
 
 namespace PockitBook.ViewModels;
@@ -39,11 +40,16 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// </summary>
     public ReactiveCommand<Unit, IRoutableViewModel> GoToBillDetailsView { get; }
 
-    protected override async void OnPageLoadedEventHandler()
+    protected override void OnPageLoadedEventHandler()
     {
-        var waitTime = 2 * 1000;
-        await Task.Delay(waitTime);
-        NavigateForward(new BillDetailsViewModel(this));
+        Task.Run(async () =>
+        {
+            var waitTime = 2 * 1000;
+            await Task.Delay(waitTime);
+
+            Dispatcher.UIThread.Post(() =>
+                NavigateForward(new BillDetailsViewModel(this)));
+        });
     }
 
     /// <summary>

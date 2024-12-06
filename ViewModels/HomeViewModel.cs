@@ -1,19 +1,17 @@
 using System;
+using PockitBook.ViewModels;
 using ReactiveUI;
 
-namespace PockitBook.ViewModels;
-
 /// <summary>
-/// The view model for the Bill Tracker view.
+/// The view model for the Home View.
 /// </summary>
-public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
+public partial class HomeViewModel : ViewModelBase, IRoutableViewModel
 {
     /// <summary>
     /// Constructor.
     /// </summary>
     /// <param name="screen"></param>
-    /// <param name="backButtonManager"></param>
-    public BillDetailsViewModel(IScreen screen)
+    public HomeViewModel(IScreen screen)
     {
         HostScreen = screen;
     }
@@ -26,5 +24,6 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <summary>
     /// Unique identifier for the routable view model.
     /// </summary>
-    public string UrlPathSegment { get; set; } = $"Bill Details page: {Guid.NewGuid().ToString().Substring(0, 5)}";
+
+    public string UrlPathSegment { get; set; } = $"Home page: {Guid.NewGuid().ToString().Substring(0, 5)}";
 }
