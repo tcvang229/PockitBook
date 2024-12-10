@@ -7,5 +7,7 @@
     <StackPanel HorizontalAlignment="Center"
                 VerticalAlignment="Center">
         <TextBlock Text="{Binding UrlPathSegment}" />
+        <Grid>
+            </Grid>
     </StackPanel>
 </UserControl>

@@ -33,7 +33,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// <summary>
     /// Command to navigate to the previous view.
     /// </summary>
-    public ReactiveCommand<Unit, IRoutableViewModel?> GoToPreviousView => Router.NavigateBack;
+    public ReactiveCommand<Unit, IRoutableViewModel> GoToPreviousView => Router.NavigateBack;
 
     /// <summary>
     /// Command to navigate to the Bill Details view.

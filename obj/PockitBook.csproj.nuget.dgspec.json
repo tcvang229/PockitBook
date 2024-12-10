@@ -40,11 +40,15 @@
           "dependencies": {
             "Avalonia": {
               "target": "Package",
-              "version": "[11.0.10, )"
+              "version": "[11.2.2, )"
+            },
+            "Avalonia.Controls.DataGrid": {
+              "target": "Package",
+              "version": "[11.2.2, )"
             },
             "Avalonia.Desktop": {
               "target": "Package",
-              "version": "[11.0.10, )"
+              "version": "[11.2.2, )"
             },
             "Avalonia.Diagnostics": {
               "target": "Package",
@@ -52,15 +56,15 @@
             },
             "Avalonia.Fonts.Inter": {
               "target": "Package",
-              "version": "[11.0.10, )"
+              "version": "[11.2.2, )"
             },
             "Avalonia.ReactiveUI": {
               "target": "Package",
-              "version": "[11.0.10, )"
+              "version": "[11.2.2, )"
             },
             "Avalonia.Themes.Fluent": {
               "target": "Package",
-              "version": "[11.0.10, )"
+              "version": "[11.2.2, )"
             },
             "CommunityToolkit.Mvvm": {
               "target": "Package",
@@ -68,7 +72,7 @@
             },
             "Microsoft.Extensions.DependencyInjection": {
               "target": "Package",
-              "version": "[8.0.0, )"
+              "version": "[9.0.0, )"
             }
           },
           "imports": [

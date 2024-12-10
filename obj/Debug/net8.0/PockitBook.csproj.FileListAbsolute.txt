@@ -12,6 +12,7 @@
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Metal.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.MicroCom.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.OpenGL.dll
+/mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Vulkan.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Controls.ColorPicker.dll
 /mnt/storage/Documents/PockitBook/bin/Debug/net8.0/Avalonia.Controls.DataGrid.dll
@@ -123,13 +124,9 @@
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.AssemblyInfo.cs
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.csproj.CoreCompileInputs.cache
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.sourcelink.json
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/references
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/original.dll
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/original.pdb
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/original.ref.dll
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/refint/PockitBook.dll
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.dll
-/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.pdb
+/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/PockitBook.dll
+/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/Avalonia/PockitBook.pdb
+/mnt/storage/Documents/PockitBook/obj/Debug/net8.0/refint/Avalonia/PockitBook.dll
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.csproj.CopyComplete
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/PockitBook.genruntimeconfig.cache
 /mnt/storage/Documents/PockitBook/obj/Debug/net8.0/ref/PockitBook.dll
