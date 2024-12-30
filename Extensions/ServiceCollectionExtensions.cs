@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using PockitBook.ViewModels;
+using PockitBook.Services;
 using ReactiveUI;
 
 namespace PockitBook.Extensions;
@@ -17,5 +18,6 @@ public static class ServiceCollectionExtensions
     {
         serviceCollection.AddSingleton<MainWindowViewModel>();
         serviceCollection.AddSingleton<RoutingState>();
+        serviceCollection.AddSingleton<DataBaseConnector>(ServiceProvider => new DataBaseConnector("pockitbook.db"));
     }
 }

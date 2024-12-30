@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "aZR7djiNGI/Kx7iqZgkUVW0Lgx8OXlWzyHV4TTDDh6GLZ/ud8VToMFXOTRQElYx9IkpvRPpdaAwNwsc3hyd19g==",
+  "dgSpecHash": "Ru9HN7qEE+TDHu5Wn/a2j8C58DFkRnsSDhXvjH98slxlafVtsMfOewYhGghG85OiP9M0SeDM5dklf866aleSAQ==",
   "success": true,
   "projectFilePath": "/mnt/storage/Documents/PockitBook/PockitBook.csproj",
   "expectedPackageFiles": [
@@ -46,9 +46,11 @@
     "/home/oone/.nuget/packages/skiasharp.nativeassets.webassembly/2.88.9/skiasharp.nativeassets.webassembly.2.88.9.nupkg.sha512",
     "/home/oone/.nuget/packages/skiasharp.nativeassets.win32/2.88.9/skiasharp.nativeassets.win32.2.88.9.nupkg.sha512",
     "/home/oone/.nuget/packages/splat/15.1.1/splat.15.1.1.nupkg.sha512",
+    "/home/oone/.nuget/packages/stub.system.data.sqlite.core.netstandard/1.0.119/stub.system.data.sqlite.core.netstandard.1.0.119.nupkg.sha512",
     "/home/oone/.nuget/packages/system.collections/4.3.0/system.collections.4.3.0.nupkg.sha512",
     "/home/oone/.nuget/packages/system.collections.immutable/5.0.0/system.collections.immutable.5.0.0.nupkg.sha512",
     "/home/oone/.nuget/packages/system.componentmodel.annotations/5.0.0/system.componentmodel.annotations.5.0.0.nupkg.sha512",
+    "/home/oone/.nuget/packages/system.data.sqlite.core/1.0.119/system.data.sqlite.core.1.0.119.nupkg.sha512",
     "/home/oone/.nuget/packages/system.diagnostics.debug/4.3.0/system.diagnostics.debug.4.3.0.nupkg.sha512",
     "/home/oone/.nuget/packages/system.dynamic.runtime/4.3.0/system.dynamic.runtime.4.3.0.nupkg.sha512",
     "/home/oone/.nuget/packages/system.globalization/4.3.0/system.globalization.4.3.0.nupkg.sha512",

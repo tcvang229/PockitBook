@@ -62,6 +62,7 @@
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Data.Common.dll
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Data.DataSetExtensions.dll
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Data.dll
+/home/oone/.nuget/packages/stub.system.data.sqlite.core.netstandard/1.0.119/lib/netstandard2.1/System.Data.SQLite.dll
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Diagnostics.Contracts.dll
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Diagnostics.Debug.dll
 /usr/lib/dotnet/packs/Microsoft.NETCore.App.Ref/8.0.10/ref/net8.0/System.Diagnostics.DiagnosticSource.dll

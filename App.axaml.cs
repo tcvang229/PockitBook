@@ -22,13 +22,13 @@ public partial class App : Application
         serviceCollection.AddServices();
 
         // Create Service Provider containing the services from the Service Collection
-        var services = serviceCollection.BuildServiceProvider();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = services.GetRequiredService<MainWindowViewModel>(),
+                DataContext = serviceProvider.GetRequiredService<MainWindowViewModel>(),
             };
         }
 

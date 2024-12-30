@@ -2,6 +2,7 @@
 using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using PockitBook.Services;
 using ReactiveUI;
 
 namespace PockitBook.ViewModels;
@@ -16,12 +17,13 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// </summary>
     /// <param name="router"></param>
     /// <param name="backButtonManager"></param>
-    public MainWindowViewModel(RoutingState router)
+    public MainWindowViewModel(RoutingState router, DataBaseConnector dbConnector)
     {
         GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
             () => NavigateForward(Constants.AppViews.BillDetailsView));
 
         Router = router;
+        _dbConnector = dbConnector;
     }
 
     /// <summary>
@@ -39,6 +41,8 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// Command to navigate to the Bill Details view.
     /// </summary>
     public ReactiveCommand<Unit, IRoutableViewModel> GoToBillDetailsView { get; }
+
+    private readonly DataBaseConnector _dbConnector;
 
     protected override void OnPageLoadedEventHandler()
     {
@@ -62,7 +66,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         return viewToNavigate switch
         {
             Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
-            Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this)),
+            Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this, _dbConnector)),
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };
     }
