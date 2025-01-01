@@ -24,6 +24,8 @@ public class MainWindowViewModel : ViewModelBase, IScreen
 
         Router = router;
         _dbConnector = dbConnector;
+
+        _dbConnector.InitializeDataBase();
     }
 
     /// <summary>

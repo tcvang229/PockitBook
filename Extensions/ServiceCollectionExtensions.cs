@@ -2,6 +2,8 @@ using Microsoft.Extensions.DependencyInjection;
 using PockitBook.ViewModels;
 using PockitBook.Services;
 using ReactiveUI;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace PockitBook.Extensions;
 
@@ -18,6 +20,17 @@ public static class ServiceCollectionExtensions
     {
         serviceCollection.AddSingleton<MainWindowViewModel>();
         serviceCollection.AddSingleton<RoutingState>();
-        serviceCollection.AddSingleton<DataBaseConnector>(ServiceProvider => new DataBaseConnector("pockitbook.db"));
+
+        serviceCollection.AddSingleton<DataBaseConnector>(
+            serviceProvider => new DataBaseConnector(
+                "pockitbook.db",
+                serviceProvider.GetRequiredService<ILogger<DataBaseConnector>>()
+                ));
+
+        serviceCollection.AddLogging(loggingBuilder =>
+        {
+            loggingBuilder.ClearProviders();
+            loggingBuilder.AddSerilog();
+        });
     }
 }

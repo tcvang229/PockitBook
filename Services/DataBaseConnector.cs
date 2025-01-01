@@ -1,5 +1,7 @@
 using System;
 using System.Data.SQLite;
+using Microsoft.Extensions.Logging;
+using PockitBook.Models;
 
 namespace PockitBook.Services;
 
@@ -12,46 +14,89 @@ public class DataBaseConnector
     /// Constructor.
     /// </summary>
     /// <param name="dbName"></param>
-    public DataBaseConnector(string dbName)
+    /// <param name="logger"></param>
+    public DataBaseConnector(string dbName, ILogger<DataBaseConnector> logger)
     {
         _connectionString = new SQLiteConnectionStringBuilder()
         {
             DataSource = dbName,
         }.ToString();
+
+        _logger = logger;
     }
 
     private readonly string _connectionString;
+    private ILogger<DataBaseConnector> _logger;
 
-    public void Test()
+
+    /// <summary>
+    /// Adds a Basic Bill to the database.
+    /// </summary>
+    /// <param name="bill"></param>
+    /// <returns></returns>
+    public bool AddBasicBill(BasicBillModel bill)
     {
         using var connection = new SQLiteConnection(_connectionString);
         connection.Open();
 
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText =
         @"
-                -- Create the table if it doesn't already exist
-                CREATE TABLE IF NOT EXISTS mytesttable (
-                    PersonName TEXT
-                    );
+            INSERT INTO basicbills
+            VALUES ($billName, $dueDayOfMonth);
+        ";
+        command.Parameters.AddWithValue("$billName", bill.Name);
+        command.Parameters.AddWithValue("$dueDayOfMonth", bill.DueDayOfMonth);
 
-                -- Insert records into the table
-                INSERT INTO mytesttable (PersonName) 
-                VALUES 
-                ('James'),
-                ('Read'),
-                ('Joe'), 
-                ('Phon');
-
-                -- Select all records from the table
-                SELECT * FROM mytesttable;
-            ";
-
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
+        try
         {
-            var name = reader.GetString(0);
-            Console.WriteLine($"Hello {name}");
+            command.ExecuteScalar();
         }
+        catch (Exception e)
+        {
+            var loggingContext = new
+            {
+                SqlCommandText = command.CommandText,
+                Model = bill
+            };
+
+            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
+            return false;
+        }
+
+        return true;
+    }
+
+    public bool InitializeDataBase()
+    {
+        using var connection = new SQLiteConnection(_connectionString);
+        connection.Open();
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+        @"
+            CREATE TABLE IF NOT EXISTS basicbills
+                (
+                    Name varchar(256),
+                    DueDayOfMonth int
+                );
+        ";
+
+        try
+        {
+            command.ExecuteScalar();
+        }
+        catch (Exception e)
+        {
+            var loggingContext = new
+            {
+                SqlCommandText = command.CommandText
+            };
+
+            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
+            return false;
+        }
+
+        return true;
     }
 }

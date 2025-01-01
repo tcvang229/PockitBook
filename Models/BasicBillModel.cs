@@ -13,5 +13,5 @@ public class BasicBillModel
     /// <summary>
     /// The day of the month when the bill is usually due.
     /// </summary>
-    public uint DayOfMonth { get; set; } = 1;
+    public int DueDayOfMonth { get; set; } = 1;
 }

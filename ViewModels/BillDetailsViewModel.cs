@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Reactive;
 using PockitBook.Models;
 using PockitBook.Services;
 using ReactiveUI;
@@ -20,15 +20,8 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     public BillDetailsViewModel(IScreen screen, DataBaseConnector dbConnector)
     {
         HostScreen = screen;
-
-        var basicBills = new List<BasicBillModel>
-        {
-            new BasicBillModel{ Name = "Foo", DayOfMonth = 21 },
-            new BasicBillModel{ Name = "Zoo", DayOfMonth = 10 },
-            new BasicBillModel{ Name = "Koo", DayOfMonth = 3 },
-        };
-
-        BasicBills = new ObservableCollection<BasicBillModel>(basicBills);
+        _dbConnector = dbConnector;
+        AddBillCommand = ReactiveCommand.Create(AddBill);
     }
 
     /// <summary>
@@ -42,7 +35,74 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     public string UrlPathSegment { get; set; } = $"Bill Details page: {Guid.NewGuid().ToString().Substring(0, 5)}";
 
     /// <summary>
-    /// 
+    /// List of bills.
     /// </summary>
     public ObservableCollection<BasicBillModel> BasicBills { get; set; } = new();
+
+    /// <summary>
+    /// Command to add the new bill to the database.
+    /// </summary>
+    public ReactiveCommand<Unit, Unit> AddBillCommand { get; }
+
+    /// <summary>
+    /// Binding property for NameOfNewBill element.
+    /// </summary>
+    public string NameOfNewBill
+    {
+        get => _nameOfnewBill;
+        set => this.RaiseAndSetIfChanged(ref _nameOfnewBill, value);
+    }
+
+    /// <summary>
+    /// Binding property for the DueDay element.
+    /// </summary>
+    public string DueDay
+    {
+        get => _dueDay;
+        set => this.RaiseAndSetIfChanged(ref _dueDay, value);
+    }
+
+    private DataBaseConnector _dbConnector;
+    private string _nameOfnewBill = string.Empty;
+    private string _dueDay = string.Empty;
+
+    /// <summary>
+    /// Adds a Basic Bill to the UI and database.
+    /// </summary>
+    private void AddBill()
+    {
+        if (TryBuildBasicBill(NameOfNewBill, DueDay, out var createdBasicBill))
+        {
+            _dbConnector.AddBasicBill(createdBasicBill!);
+            BasicBills.Add(createdBasicBill!);
+        }
+        else
+        {
+            // TODO: Tell the user that they can't add the new bill because it doesn't meet the requirements
+        }
+    }
+
+    /// <summary>
+    /// Tries to build a Basic Bill model.
+    /// </summary>
+    /// <param name="nameOfNewBill"></param>
+    /// <param name="dueDayOfMonth"></param>
+    /// <param name="createdBasicBill"></param>
+    /// <returns></returns>
+    private bool TryBuildBasicBill(string nameOfNewBill, string dueDayOfMonth, out BasicBillModel? createdBasicBill)
+    {
+        if (!int.TryParse(DueDay, out var dueDay) || dueDay > 31 || dueDay < 0)
+        {
+            createdBasicBill = null;
+            return false;
+        }
+
+        createdBasicBill = new BasicBillModel
+        {
+            Name = NameOfNewBill,
+            DueDayOfMonth = dueDay
+        };
+
+        return true;
+    }
 }
