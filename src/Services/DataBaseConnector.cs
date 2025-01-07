@@ -67,6 +67,10 @@ public class DataBaseConnector
         return true;
     }
 
+    /// <summary>
+    /// Initial database setup.
+    /// </summary>
+    /// <returns></returns>
     public bool InitializeDataBase()
     {
         using var connection = new SQLiteConnection(_connectionString);

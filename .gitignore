@@ -1,3 +1,13 @@
 bin/
+obj/
 notes/
 Logs/
+
+src/bin/
+src/obj/
+
+tests/PockitBook.UnitTests/bin/
+tests/PockitBook.UnitTests/obj/
+
+tests/PockitBook.IntegrationTests/bin/
+tests/PockitBook.IntegrationTests/obj/

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Reactive;
 using PockitBook.Models;
 using PockitBook.Services;
 using ReactiveUI;
@@ -42,7 +41,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <summary>
     /// Command to add the new bill to the database.
     /// </summary>
-    public ReactiveCommand<Unit, Unit> AddBillCommand { get; }
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AddBillCommand { get; }
 
     /// <summary>
     /// Binding property for NameOfNewBill element.
@@ -69,7 +68,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <summary>
     /// Adds a Basic Bill to the UI and database.
     /// </summary>
-    private void AddBill()
+    public void AddBill()
     {
         if (TryBuildBasicBill(NameOfNewBill, DueDay, out var createdBasicBill))
         {
@@ -89,9 +88,9 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <param name="dueDayOfMonth"></param>
     /// <param name="createdBasicBill"></param>
     /// <returns></returns>
-    private bool TryBuildBasicBill(string nameOfNewBill, string dueDayOfMonth, out BasicBillModel? createdBasicBill)
+    public bool TryBuildBasicBill(string nameOfNewBill, string dueDayOfMonth, out BasicBillModel? createdBasicBill)
     {
-        if (!int.TryParse(DueDay, out var dueDay) || dueDay > 31 || dueDay < 0)
+        if (!int.TryParse(dueDayOfMonth, out var dueDay) || dueDay > 31 || dueDay < 1)
         {
             createdBasicBill = null;
             return false;
@@ -99,7 +98,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
 
         createdBasicBill = new BasicBillModel
         {
-            Name = NameOfNewBill,
+            Name = nameOfNewBill,
             DueDayOfMonth = dueDay
         };
 

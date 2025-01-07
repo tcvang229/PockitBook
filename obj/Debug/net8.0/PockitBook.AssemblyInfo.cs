@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PockitBook")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b18ed3dc2d27cceb264e293c82d76942c987c90a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40f45ff56569895ad9660ef1c3b926cdda267fd2")]
 [assembly: System.Reflection.AssemblyProductAttribute("PockitBook")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PockitBook")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
