@@ -25,7 +25,7 @@ public class BillDetailsViewModelTests
         // Assemble
         var iScreen = Substitute.For<IScreen>();
         var iLogger = Substitute.For<ILogger<DataBaseConnector>>();
-        var dbConnector = Substitute.For<DataBaseConnector>("", iLogger);
+        var dbConnector = Substitute.For<DataBaseConnector>("", iLogger, Arg.Any<bool>());
         var sut = new BillDetailsViewModel(iScreen, dbConnector);
 
         // Act
@@ -49,7 +49,7 @@ public class BillDetailsViewModelTests
         // Assemble
         var iScreen = Substitute.For<IScreen>();
         var iLogger = Substitute.For<ILogger<DataBaseConnector>>();
-        var dbConnector = Substitute.For<DataBaseConnector>("", iLogger);
+        var dbConnector = Substitute.For<DataBaseConnector>("", iLogger, Arg.Any<bool>());
         var sut = new BillDetailsViewModel(iScreen, dbConnector);
 
         // Act

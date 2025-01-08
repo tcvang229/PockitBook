@@ -1,5 +1,5 @@
 using System;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using PockitBook.Models;
 
@@ -15,19 +15,21 @@ public class DataBaseConnector
     /// </summary>
     /// <param name="dbName"></param>
     /// <param name="logger"></param>
-    public DataBaseConnector(string dbName, ILogger<DataBaseConnector> logger)
+    /// <param name="isTesting"></param>
+    public DataBaseConnector(string dbName, ILogger<DataBaseConnector> logger, bool isTesting = false)
     {
-        _connectionString = new SQLiteConnectionStringBuilder()
+        _connectionString = new SqliteConnectionStringBuilder()
         {
             DataSource = dbName,
+            Mode = isTesting ? SqliteOpenMode.Memory : SqliteOpenMode.ReadWriteCreate,
+            Cache = isTesting ? SqliteCacheMode.Shared : SqliteCacheMode.Default
         }.ToString();
 
         _logger = logger;
     }
 
-    private readonly string _connectionString;
+    internal readonly string _connectionString;
     private ILogger<DataBaseConnector> _logger;
-
 
     /// <summary>
     /// Adds a Basic Bill to the database.
@@ -36,7 +38,7 @@ public class DataBaseConnector
     /// <returns></returns>
     public bool AddBasicBill(BasicBillModel bill)
     {
-        using var connection = new SQLiteConnection(_connectionString);
+        using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
         using var command = connection.CreateCommand();
@@ -73,7 +75,7 @@ public class DataBaseConnector
     /// <returns></returns>
     public bool InitializeDataBase()
     {
-        using var connection = new SQLiteConnection(_connectionString);
+        using var connection = new SqliteConnection(_connectionString);
         connection.Open();
 
         using var command = connection.CreateCommand();
@@ -88,7 +90,7 @@ public class DataBaseConnector
 
         try
         {
-            command.ExecuteScalar();
+            command.ExecuteNonQuery();
         }
         catch (Exception e)
         {

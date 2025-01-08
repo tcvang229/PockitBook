@@ -8,6 +8,8 @@ src/obj/
 
 tests/PockitBook.UnitTests/bin/
 tests/PockitBook.UnitTests/obj/
+tests/PockitBook.UnitTests/Logs/
 
 tests/PockitBook.IntegrationTests/bin/
 tests/PockitBook.IntegrationTests/obj/
+tests/PockitBook.IntegrationTests/Logs/

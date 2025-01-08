@@ -17,15 +17,17 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// </summary>
     /// <param name="router"></param>
     /// <param name="backButtonManager"></param>
-    public MainWindowViewModel(RoutingState router, DataBaseConnector dbConnector)
+    public MainWindowViewModel(RoutingState router, DataBaseConnector dbConnector, bool isTesting = false)
     {
         GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
             () => NavigateForward(Constants.AppViews.BillDetailsView));
 
         Router = router;
+
         _dbConnector = dbConnector;
 
-        _dbConnector.InitializeDataBase();
+        if (!isTesting)
+            _dbConnector.InitializeDataBase();
     }
 
     /// <summary>

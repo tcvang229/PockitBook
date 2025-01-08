@@ -16,16 +16,25 @@ public static class ServiceCollectionExtensions
     /// Adds services to the application.
     /// </summary>
     /// <param name="serviceCollection"></param>
-    public static void AddServices(this IServiceCollection serviceCollection)
+    /// <param name="dbName"></param>
+    /// <param name="isTesting"></param>
+    public static void AddServices(this IServiceCollection serviceCollection, string dbName = "pockitbook.db", bool isTesting = false)
     {
-        serviceCollection.AddSingleton<MainWindowViewModel>();
         serviceCollection.AddSingleton<RoutingState>();
 
         serviceCollection.AddSingleton<DataBaseConnector>(
             serviceProvider => new DataBaseConnector(
-                "pockitbook.db",
-                serviceProvider.GetRequiredService<ILogger<DataBaseConnector>>()
+                dbName: dbName,
+                logger: serviceProvider.GetRequiredService<ILogger<DataBaseConnector>>(),
+                isTesting: isTesting
                 ));
+
+        serviceCollection.AddSingleton<MainWindowViewModel>(
+            serviceProvider => new MainWindowViewModel(
+                router: serviceProvider.GetRequiredService<RoutingState>(),
+                dbConnector: serviceProvider.GetRequiredService<DataBaseConnector>(),
+                isTesting: isTesting
+            ));
 
         serviceCollection.AddLogging(loggingBuilder =>
         {
