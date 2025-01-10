@@ -29,11 +29,10 @@ public class BillDetailsViewModelTests
         var sut = new BillDetailsViewModel(iScreen, dbConnector);
 
         // Act
-        var result = sut.TryBuildBasicBill("testBill", dueDayOfMonth, out var createdBasicBill);
+        var result = sut.TryBuildBasicBill("testBill", dueDayOfMonth);
 
         // Assert
-        Assert.False(result);
-        Assert.Null(createdBasicBill);
+        Assert.Null(result);
     }
 
     /// <summary>
@@ -54,14 +53,13 @@ public class BillDetailsViewModelTests
 
         // Act
         var billName = "testBill";
-        var result = sut.TryBuildBasicBill(billName, dueDayOfMonth, out var createdBasicBill);
+        var result = sut.TryBuildBasicBill(billName, dueDayOfMonth);
 
         // Assert
-        Assert.True(result);
-        Assert.NotNull(createdBasicBill);
-        Assert.Equal(billName, createdBasicBill.Name);
+        Assert.NotNull(result);
+        Assert.Equal(billName, result.Name);
 
         var expectedDueDay = int.Parse(dueDayOfMonth);
-        Assert.Equal(expectedDueDay, createdBasicBill.DueDayOfMonth);
+        Assert.Equal(expectedDueDay, result.DueDayOfMonth);
     }
 }

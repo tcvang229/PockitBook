@@ -30,16 +30,16 @@ public class BillDetailsViewModelTests
     /// Tests that the AddBill() method is successfully and correctly writing to the database.
     /// </summary>
     [Fact]
-    public void AddBill_ValidInputs_SuccessfulWrites()
+    public async Task AddBill_ValidInputs_SuccessfulWrites()
     {
         // Assign
 
         // Keep the connection open until the end of the test, otherwise
         // the in-memory database wipes out. 
         using var connection = new SqliteConnection(_dbConnector._connectionString);
-        connection.Open();
+        await connection.OpenAsync();
 
-        _dbConnector.InitializeDataBase();
+        await _dbConnector.InitializeDataBaseAsync();
 
         var nameOfNewBill = "MyTestBill";
         var dueDay = "21";
@@ -50,7 +50,7 @@ public class BillDetailsViewModelTests
         };
 
         // Act
-        viewModel.AddBill();
+        await viewModel.AddBillAsync();
 
         // Assert
         var basicBills = connection
@@ -66,16 +66,16 @@ public class BillDetailsViewModelTests
     /// Tests that the AddBill() method unsuccessfully writes to the database due to invalid values.
     /// </summary>
     [Fact]
-    public void AddBill_InvalidInputs_UnsuccessfulWrites()
+    public async Task AddBill_InvalidInputs_UnsuccessfulWrites()
     {
         // Assign
 
         // Keep the connection open until the end of the test, otherwise
         // the in-memory database wipes out. 
         using var connection = new SqliteConnection(_dbConnector._connectionString);
-        connection.Open();
+        await connection.OpenAsync();
 
-        _dbConnector.InitializeDataBase();
+        await _dbConnector.InitializeDataBaseAsync();
 
         var nameOfNewBill = "MyTestBill";
         var dueDay = "3131";
@@ -86,7 +86,7 @@ public class BillDetailsViewModelTests
         };
 
         // Act
-        viewModel.AddBill();
+        await viewModel.AddBillAsync();
 
         // Assert
         var basicBills = connection
@@ -94,5 +94,66 @@ public class BillDetailsViewModelTests
             .ToList();
 
         Assert.True(basicBills.Count == 0);
+    }
+
+    /// <summary>
+    /// Tests that the SetBasicBillsAsync() method sets the basic bills list correctly within the view model.
+    /// </summary>
+    /// <returns></returns>
+    [Fact]
+    public async Task SetBasicBillsAsync_SuccessfulQuery()
+    {
+        // Assign
+        using var connection = new SqliteConnection(_dbConnector._connectionString);
+        await connection.OpenAsync();
+
+        await _dbConnector.InitializeDataBaseAsync();
+
+        var testBasicBills = new List<BasicBillModel>()
+        {
+            new BasicBillModel()
+            {
+                Name = "TestBill1",
+                DueDayOfMonth = 1
+            },
+            new BasicBillModel()
+            {
+                Name = "TestBill2",
+                DueDayOfMonth = 2
+            },
+            new BasicBillModel()
+            {
+                Name = "TestBill3",
+                DueDayOfMonth = 3
+            },
+        };
+
+        // TODO: Could automate this better?
+        using var command = connection.CreateCommand();
+        command.CommandText =
+        $@"
+            INSERT INTO basicbills
+            VALUES
+            ('TestBill1', 1),
+            ('TestBill2', 2),
+            ('TestBill3', 3);
+        ";
+
+        Console.WriteLine(command.CommandText);
+
+        await command.ExecuteNonQueryAsync();
+
+        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _dbConnector);
+
+        // Act
+        await viewModel.SetBasicBillsAsync();
+
+        // Assert
+        Assert.Equal(testBasicBills.Count, viewModel.BasicBills.Count);
+        for (var i = 0; i < testBasicBills.Count; i++)
+        {
+            Assert.Equal(testBasicBills[i].Name, viewModel.BasicBills[i].Name);
+            Assert.Equal(testBasicBills[i].DueDayOfMonth, viewModel.BasicBills[i].DueDayOfMonth);
+        }
     }
 }

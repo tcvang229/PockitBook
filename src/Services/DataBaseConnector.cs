@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using PockitBook.Models;
@@ -32,51 +36,13 @@ public class DataBaseConnector
     private ILogger<DataBaseConnector> _logger;
 
     /// <summary>
-    /// Adds a Basic Bill to the database.
-    /// </summary>
-    /// <param name="bill"></param>
-    /// <returns></returns>
-    public bool AddBasicBill(BasicBillModel bill)
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        connection.Open();
-
-        using var command = connection.CreateCommand();
-        command.CommandText =
-        @"
-            INSERT INTO basicbills
-            VALUES ($billName, $dueDayOfMonth);
-        ";
-        command.Parameters.AddWithValue("$billName", bill.Name);
-        command.Parameters.AddWithValue("$dueDayOfMonth", bill.DueDayOfMonth);
-
-        try
-        {
-            command.ExecuteScalar();
-        }
-        catch (Exception e)
-        {
-            var loggingContext = new
-            {
-                SqlCommandText = command.CommandText,
-                Model = bill
-            };
-
-            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// Initial database setup.
     /// </summary>
     /// <returns></returns>
-    public bool InitializeDataBase()
+    public async Task<Exception?> InitializeDataBaseAsync()
     {
         using var connection = new SqliteConnection(_connectionString);
-        connection.Open();
+        await connection.OpenAsync();
 
         using var command = connection.CreateCommand();
         command.CommandText =
@@ -91,6 +57,7 @@ public class DataBaseConnector
         try
         {
             command.ExecuteNonQuery();
+            return null;
         }
         catch (Exception e)
         {
@@ -100,9 +67,69 @@ public class DataBaseConnector
             };
 
             _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
-            return false;
+            return e;
         }
+    }
 
-        return true;
+    /// <summary>
+    /// Adds a Basic Bill to the database.
+    /// </summary>
+    /// <param name="bill"></param>
+    /// <returns></returns>
+    public async Task<Exception?> AddBasicBillAsync(BasicBillModel bill)
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+        @"
+            INSERT INTO basicbills
+            VALUES ($billName, $dueDayOfMonth);
+        ";
+        command.Parameters.AddWithValue("$billName", bill.Name);
+        command.Parameters.AddWithValue("$dueDayOfMonth", bill.DueDayOfMonth);
+
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+            return null;
+        }
+        catch (Exception e)
+        {
+            var loggingContext = new
+            {
+                SqlCommandText = command.CommandText,
+                Model = bill
+            };
+
+            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
+            return e;
+        }
+    }
+
+    /// <summary>
+    /// Returns a list of BasicBillsModels.
+    /// </summary>
+    /// <param name="basicBills"></param>
+    /// <returns></returns>
+    public async Task<(Exception? exception, List<BasicBillModel>? basicBillModels)> GetBasicBillsAsync()
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        try
+        {
+            var sqlCommand = "SELECT * FROM basicbills";
+            var basicBills = (await connection // Does this return null if there are no records in table?
+                .QueryAsync<BasicBillModel>(sqlCommand))
+                .ToList();
+
+            return (null, basicBills);
+        }
+        catch (Exception e)
+        {
+            return (e, null);
+        }
     }
 }

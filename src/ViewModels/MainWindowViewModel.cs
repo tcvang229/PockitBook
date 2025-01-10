@@ -27,7 +27,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         _dbConnector = dbConnector;
 
         if (!isTesting)
-            _dbConnector.InitializeDataBase();
+            _dbConnector.InitializeDataBaseAsync();
     }
 
     /// <summary>
@@ -50,6 +50,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
 
     protected override void OnPageLoadedEventHandler()
     {
+        // Show the splash screen.
         Task.Run(async () =>
         {
             var waitTime = 2 * 1000;
