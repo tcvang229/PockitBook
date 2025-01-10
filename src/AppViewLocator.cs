@@ -19,6 +19,7 @@ public class AppViewLocator : IViewLocator
         return viewModel switch
         {
             BillDetailsViewModel _viewModel => new BillDetailsView { ViewModel = _viewModel },
+            AccountProjectionViewModel _viewModel => new AccountProjectionView { ViewModel = _viewModel },
             HomeViewModel _viewModel => new HomeView { ViewModel = _viewModel },
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };

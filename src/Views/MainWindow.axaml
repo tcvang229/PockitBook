@@ -14,7 +14,7 @@
         <StackPanel Grid.Column="0">
             <Button Name="BackNavButton" Content="Go Back"/>
             <Button Name="BillDetailsNavButton" Content="Bill Details" />
-            <Button Name="AccountTrackerNavButton" Content="Account Tracker" />
+            <Button Name="AccountProjectionNavButton" Content="Account Tracker" />
         </StackPanel>
         <rxui:RoutedViewHost Grid.Column="1" Router="{Binding Router}">
 

@@ -20,7 +20,7 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         BackNavButton = this.FindControl<Button>("BackNavButton");
         BillDetailsNavButton = this.FindControl<Button>("BillDetailsNavButton");
-        AccountTrackerNavButton = this.FindControl<Button>("AccountTrackerNavButton");
+        AccountProjectionNavButton = this.FindControl<Button>("AccountProjectionNavButton");
 
         this.WhenActivated(disposables =>
         {
@@ -48,8 +48,8 @@ public partial class MainWindow : ReactiveWindow<MainWindowViewModel>
 
         this.BindCommand(
             ViewModel,
-            viewModel => viewModel.GoToBillDetailsView,
-            view => view.AccountTrackerNavButton
+            viewModel => viewModel.GoToAccountProjectionView,
+            view => view.AccountProjectionNavButton
         );
     }
 }

@@ -22,6 +22,9 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
             () => NavigateForward(Constants.AppViews.BillDetailsView));
 
+        GoToAccountProjectionView = ReactiveCommand.CreateFromObservable(
+            () => NavigateForward(Constants.AppViews.AccountProjectionView));
+
         Router = router;
 
         _dbConnector = dbConnector;
@@ -45,6 +48,11 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     /// Command to navigate to the Bill Details view.
     /// </summary>
     public ReactiveCommand<Unit, IRoutableViewModel> GoToBillDetailsView { get; }
+
+    /// <summary>
+    /// Command to navigate to the Account Projection view.
+    /// </summary>
+    public ReactiveCommand<Unit, IRoutableViewModel> GoToAccountProjectionView { get; }
 
     private readonly DataBaseConnector _dbConnector;
 
@@ -72,6 +80,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         {
             Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
             Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this, _dbConnector)),
+            Constants.AppViews.AccountProjectionView => Router.Navigate.Execute(new AccountProjectionViewModel(this)),
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };
     }

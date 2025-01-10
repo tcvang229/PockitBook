@@ -11,6 +11,7 @@ public static class Constants
     public enum AppViews
     {
         HomeView,
-        BillDetailsView
+        BillDetailsView,
+        AccountProjectionView
     };
 }

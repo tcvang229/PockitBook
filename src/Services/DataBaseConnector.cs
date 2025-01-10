@@ -49,8 +49,9 @@ public class DataBaseConnector
         @"
             CREATE TABLE IF NOT EXISTS basicbills
                 (
-                    Name varchar(256),
-                    DueDayOfMonth int
+                    Name varchar(256) NOT NULL,
+                    DueDayOfMonth int NOT NULL,
+                    PRIMARY KEY (Name)
                 );
         ";
 
