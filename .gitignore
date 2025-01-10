@@ -2,6 +2,7 @@ bin/
 obj/
 notes/
 Logs/
+pockitbook.db
 
 src/bin/
 src/obj/
