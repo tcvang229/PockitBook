@@ -78,6 +78,8 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     {
         return viewToNavigate switch
         {
+            // Todo: instead of new-ing up objects, follow factory pattern. this will allow us to
+            // make async calls
             Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
             Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this, _dbConnector)),
             Constants.AppViews.AccountProjectionView => Router.Navigate.Execute(new AccountProjectionViewModel(this)),

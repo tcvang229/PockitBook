@@ -43,10 +43,12 @@ public class BillDetailsViewModelTests
 
         var nameOfNewBill = "MyTestBill";
         var dueDay = "21";
+        var amountDue = "3.7";
         var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _dbConnector)
         {
             NameOfNewBill = nameOfNewBill,
-            DueDay = dueDay
+            DueDay = dueDay,
+            AmountDue = amountDue
         };
 
         // Act
@@ -54,7 +56,16 @@ public class BillDetailsViewModelTests
 
         // Assert
         var basicBills = connection
-            .Query<BasicBillModel>("SELECT * FROM basicbills;")
+            .Query<BasicBillModel>(
+                """
+                    SELECT 
+                        name as Name,
+                        due_day_of_month as DueDayOfMonth,
+                        amount_due as AmountDue
+                    FROM 
+                        basic_bills;
+                """
+                )
             .ToList();
 
         Assert.True(basicBills.Count == 1);
@@ -90,7 +101,7 @@ public class BillDetailsViewModelTests
 
         // Assert
         var basicBills = connection
-            .Query<BasicBillModel>("SELECT * FROM basicbills;")
+            .Query<BasicBillModel>("SELECT * FROM basic_bills;")
             .ToList();
 
         Assert.True(basicBills.Count == 0);
@@ -114,34 +125,35 @@ public class BillDetailsViewModelTests
             new BasicBillModel()
             {
                 Name = "TestBill1",
-                DueDayOfMonth = 1
+                DueDayOfMonth = 1,
+                AmountDue = 1
             },
             new BasicBillModel()
             {
                 Name = "TestBill2",
-                DueDayOfMonth = 2
+                DueDayOfMonth = 2,
+                AmountDue = 3.0f
             },
             new BasicBillModel()
             {
                 Name = "TestBill3",
-                DueDayOfMonth = 3
+                DueDayOfMonth = 3,
+                AmountDue = 3.3f
             },
         };
 
         // TODO: Could automate this better?
-        using var command = connection.CreateCommand();
-        command.CommandText =
-        $@"
-            INSERT INTO basicbills
+        const string sqlCommand =
+        """
+            INSERT INTO 
+                basic_bills (name, due_day_of_month, amount_due)
             VALUES
-            ('TestBill1', 1),
-            ('TestBill2', 2),
-            ('TestBill3', 3);
-        ";
+                ('TestBill1', 1, 1),
+                ('TestBill2', 2, 3.0),
+                ('TestBill3', 3, 3.3);
+        """;
 
-        Console.WriteLine(command.CommandText);
-
-        await command.ExecuteNonQueryAsync();
+        await connection.ExecuteAsync(sqlCommand);
 
         var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _dbConnector);
 

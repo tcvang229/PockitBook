@@ -29,7 +29,8 @@ public class BillDetailsViewModelTests
         var sut = new BillDetailsViewModel(iScreen, dbConnector);
 
         // Act
-        var result = sut.TryBuildBasicBill("testBill", dueDayOfMonth);
+        var billName = "testBill";
+        var result = sut.BuildBasicBill(billName, dueDayOfMonth, "3");
 
         // Assert
         Assert.Null(result);
@@ -53,7 +54,7 @@ public class BillDetailsViewModelTests
 
         // Act
         var billName = "testBill";
-        var result = sut.TryBuildBasicBill(billName, dueDayOfMonth);
+        var result = sut.BuildBasicBill(billName, dueDayOfMonth, "3");
 
         // Assert
         Assert.NotNull(result);

@@ -22,14 +22,14 @@ public static class ServiceCollectionExtensions
     {
         serviceCollection.AddSingleton<RoutingState>();
 
-        serviceCollection.AddSingleton<DataBaseConnector>(
+        serviceCollection.AddSingleton(
             serviceProvider => new DataBaseConnector(
                 dbName: dbName,
                 logger: serviceProvider.GetRequiredService<ILogger<DataBaseConnector>>(),
                 isTesting: isTesting
                 ));
 
-        serviceCollection.AddSingleton<MainWindowViewModel>(
+        serviceCollection.AddSingleton(
             serviceProvider => new MainWindowViewModel(
                 router: serviceProvider.GetRequiredService<RoutingState>(),
                 dbConnector: serviceProvider.GetRequiredService<DataBaseConnector>(),

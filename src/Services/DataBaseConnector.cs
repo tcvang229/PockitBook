@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -22,6 +22,8 @@ public class DataBaseConnector
     /// <param name="isTesting"></param>
     public DataBaseConnector(string dbName, ILogger<DataBaseConnector> logger, bool isTesting = false)
     {
+        // Todo: could probably set this up in appsettings.json. could then manipulate what appsettings.json file 
+        // to use during testing vs production vs local development
         _connectionString = new SqliteConnectionStringBuilder()
         {
             DataSource = dbName,
@@ -41,33 +43,32 @@ public class DataBaseConnector
     /// <returns></returns>
     public async Task<Exception?> InitializeDataBaseAsync()
     {
+        // Todo: delete me once we have good database versioning/rollbacks
+        // await DropBasicBillsTable();
+
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
 
-        using var command = connection.CreateCommand();
-        command.CommandText =
-        @"
-            CREATE TABLE IF NOT EXISTS basicbills
-                (
-                    Name varchar(256) NOT NULL,
-                    DueDayOfMonth int NOT NULL,
-                    PRIMARY KEY (Name)
-                );
-        ";
+        // TODO: build a SQL versioning system. this is too manual
+        const string createTableStatement =
+            """
+                CREATE TABLE IF NOT EXISTS basic_bills
+                    (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR(256) NOT NULL,
+                        due_day_of_month INTEGER NOT NULL,
+                        amount_due REAL NOT NULL
+                    );
+            """;
 
         try
         {
-            command.ExecuteNonQuery();
+            await connection.ExecuteAsync(createTableStatement);
             return null;
         }
         catch (Exception e)
         {
-            var loggingContext = new
-            {
-                SqlCommandText = command.CommandText
-            };
-
-            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
+            _logger.LogError(e, "Failed to initialize `basicbills`. SQL command:\n{@SqlCommandtext}", createTableStatement);
             return e;
         }
     }
@@ -75,37 +76,37 @@ public class DataBaseConnector
     /// <summary>
     /// Adds a Basic Bill to the database.
     /// </summary>
-    /// <param name="bill"></param>
+    /// <param name="bill"></param>Context
     /// <returns></returns>
-    public async Task<Exception?> AddBasicBillAsync(BasicBillModel bill)
+    public async Task<int> AddBasicBillAsync(BasicBillModel bill)
     {
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
 
-        using var command = connection.CreateCommand();
-        command.CommandText =
-        @"
-            INSERT INTO basicbills
-            VALUES ($billName, $dueDayOfMonth);
-        ";
-        command.Parameters.AddWithValue("$billName", bill.Name);
-        command.Parameters.AddWithValue("$dueDayOfMonth", bill.DueDayOfMonth);
+        const string insertStatement =
+            """
+                INSERT INTO basic_bills (name, due_day_of_month, amount_due)
+                VALUES ($Name, $DueDayOfMonth, $AmountDue);
+            """;
 
         try
         {
-            await command.ExecuteNonQueryAsync();
-            return null;
+            int rowsAffected = await connection.ExecuteAsync(insertStatement, bill);
+            return rowsAffected;
         }
         catch (Exception e)
         {
-            var loggingContext = new
-            {
-                SqlCommandText = command.CommandText,
-                Model = bill
-            };
+            string serializedModel = JsonSerializer.Serialize(bill);
 
-            _logger.LogError(e, "Failed to execute SQL command.\n{@Context}", loggingContext);
-            return e;
+            _logger.LogError
+                (
+                    e,
+                    "Failed to insert records into `basicbills`. SQL command:\n{SqlCommandtext}\nModel:\n{Model}",
+                    insertStatement,
+                    serializedModel
+                );
+
+            return 0;
         }
     }
 
@@ -114,23 +115,66 @@ public class DataBaseConnector
     /// </summary>
     /// <param name="basicBills"></param>
     /// <returns></returns>
-    public async Task<(Exception? exception, List<BasicBillModel>? basicBillModels)> GetBasicBillsAsync()
+    public async Task<IEnumerable<BasicBillModel>?> GetBasicBillsAsync()
+    {
+        // Todo: Support pagination, this can get really big
+
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        const string sqlCommand =
+            """
+                SELECT 
+                    id as Id,
+                    name as Name,
+                    due_day_of_month as DueDayOfMonth,
+                    amount_due as AmountDue
+                FROM 
+                    basic_bills
+            """;
+
+        try
+        {
+
+            IEnumerable<BasicBillModel> basicBills = await connection.QueryAsync<BasicBillModel>(sqlCommand);
+
+            return basicBills;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError
+                (
+                    e,
+                    "Failed to select records from `basicbills` table. SQL command: \n{SqlCommandtext}",
+                    sqlCommand
+                );
+
+            return null;
+        }
+    }
+
+    private async Task DropBasicBillsTable()
     {
         using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync();
 
+        const string sqlCommand =
+            """
+                DROP TABLE IF EXISTS basic_bills
+            """;
+
         try
         {
-            var sqlCommand = "SELECT * FROM basicbills";
-            var basicBills = (await connection // Does this return null if there are no records in table?
-                .QueryAsync<BasicBillModel>(sqlCommand))
-                .ToList();
-
-            return (null, basicBills);
+            await connection.ExecuteAsync(sqlCommand);
         }
-        catch (Exception e)
+        catch (Exception exception)
         {
-            return (e, null);
+            _logger.LogError
+                (
+                    exception,
+                    "Failed to drop `basicbills` table. SQL command:\n{SqlCommandtext}",
+                    sqlCommand
+                );
         }
     }
 }
