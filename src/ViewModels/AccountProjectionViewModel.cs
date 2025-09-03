@@ -1,4 +1,5 @@
 using System;
+using LiveChartsCore.Defaults;
 using ReactiveUI;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
@@ -7,7 +8,8 @@ using PockitBook.Services;
 using System.Threading.Tasks;
 using PockitBook.Models;
 using System.Collections.Generic;
-
+using System.Linq;
+using LiveChartsCore.Kernel.Sketches;
 
 namespace PockitBook.ViewModels;
 
@@ -48,6 +50,13 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
     }
 
     /// <summary>
+    /// The x-axis formatting for the cartesian chart.
+    /// </summary>
+    public ICartesianAxis[] XAxes { get; set; } = [
+        new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("MMMM dd"))
+    ];
+
+    /// <summary>
     /// The array of data for graph plots.
     /// </summary>
     public ISeries[] Series { get; set; } = [];
@@ -66,12 +75,22 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
 
     private DataBaseConnector _databaseConnector;
 
+    public long OneDayTicks => TimeSpan.FromDays(1).Ticks;
+
     private async Task UpdateProjectionAsync()
     {
+        LineSeries<DateTimePoint> lineSeries = await RecalculateAccountProjectionAsync();
         Series = new ISeries[]
         {
-            await RecalculateAccountProjectionAsync()
+            lineSeries
         };
+
+        XAxes = [
+            new Axis
+            {
+                Labels = lineSeries.Values?.Select(x => x.DateTime.ToString("yyyy MMM dd")).ToArray()
+            }
+        ];
 
         this.RaisePropertyChanged(nameof(Series));
     }
@@ -85,32 +104,38 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         return accountBalance;
     }
 
-    private async Task<LineSeries<float>> RecalculateAccountProjectionAsync()
+    private async Task<LineSeries<DateTimePoint>> RecalculateAccountProjectionAsync()
     {
         float? accountBalance = ValidateAccountBalance();
         if (accountBalance is null)
-            return new LineSeries<float>();
+            return new LineSeries<DateTimePoint>();
 
         IEnumerable<BasicBillModel>? basicBills = await _databaseConnector.GetBasicBillsAsync();
         if (basicBills is null)
-            return new LineSeries<float>();
+            return new LineSeries<DateTimePoint>();
 
-        LineSeries<float> lineSeries = new()
+        // Assume bills are due in the current month/year (you can adjust logic as needed)
+        DateTime today = DateTime.Today;
+        IOrderedEnumerable<BasicBillModel> billsOrdered = basicBills.OrderBy(b => b.DueDayOfMonth);
+
+        List<DateTimePoint> points = new();
+
+        foreach (BasicBillModel bill in billsOrdered)
         {
+            accountBalance -= bill.AmountDue;
+
+            // Build a real DateTime for this bill
+            DateTime dueDate = new(today.Year, today.Month, bill.DueDayOfMonth);
+            DateTimePoint dateTimePoint = new(dueDate, accountBalance.Value);
+
+            points.Add(dateTimePoint);
+        }
+
+        return new LineSeries<DateTimePoint>
+        {
+            Values = points,
             Fill = null,
             GeometrySize = 20
         };
-
-        List<float> calculatedDataPoints = new();
-        foreach (BasicBillModel basicBill in basicBills)
-        {
-            float result = (float)accountBalance - basicBill.AmountDue;
-            calculatedDataPoints.Add(result);
-            accountBalance = result;
-        }
-
-        lineSeries.Values = calculatedDataPoints;
-
-        return lineSeries;
     }
 }

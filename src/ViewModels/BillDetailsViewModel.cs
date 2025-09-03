@@ -67,7 +67,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     }
 
     /// <summary>
-    /// 
+    /// Binding property for the AmountDue element.
     /// </summary>
     public string AmountDue
     {

@@ -12,6 +12,7 @@
             Grid.RowSpan="2"
             Series="{Binding Series}"
             Title="{Binding Title}"
+            XAxes="{Binding XAxes}"
             >
         </lvs:CartesianChart>
 
