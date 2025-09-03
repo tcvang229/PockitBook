@@ -122,12 +122,9 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
 
         foreach (BasicBillModel bill in billsOrdered)
         {
-            accountBalance -= bill.AmountDue;
+            (DateTimePoint dateTimePoint, float newAccountBalance) = HandleBill(bill, today, (float)accountBalance);
 
-            // Build a real DateTime for this bill
-            DateTime dueDate = new(today.Year, today.Month, bill.DueDayOfMonth);
-            DateTimePoint dateTimePoint = new(dueDate, accountBalance.Value);
-
+            accountBalance = newAccountBalance;
             points.Add(dateTimePoint);
         }
 
@@ -137,5 +134,20 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
             Fill = null,
             GeometrySize = 20
         };
+    }
+
+    private static (DateTimePoint, float) HandleBill(BasicBillModel bill, DateTime dueDateTime, float accountBalance)
+    {
+        // Todo: This is a hacky and quick way to get income/pay checks added into the chart. 
+        // Will need to redesign the app and flow of adding in the incomes.
+        if (bill.Name == "income")
+            accountBalance += bill.AmountDue;
+        else
+            accountBalance -= bill.AmountDue;
+
+        DateTime dueDate = new(dueDateTime.Year, dueDateTime.Month, bill.DueDayOfMonth);
+        DateTimePoint dateTimePoint = new(dueDate, accountBalance);
+
+        return (dateTimePoint, accountBalance);
     }
 }
