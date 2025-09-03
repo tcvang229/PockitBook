@@ -21,6 +21,11 @@
                     Grid.Column="2"
                     Grid.Row="0"
                     Text="Amount Due"/>
+                <Button 
+                    Grid.Column="3"
+                    Grid.Row="0"
+                    Name="DeleteAllBillsButton"
+                    Content="Remove All Bills"/>
                 <TextBox 
                     Grid.Column="0"
                     Grid.Row="1"

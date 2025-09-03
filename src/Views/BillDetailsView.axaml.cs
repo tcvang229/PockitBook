@@ -19,6 +19,7 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
         AvaloniaXamlLoader.Load(this);
 
         AddBillButton = this.FindControl<Button>("AddBillButton");
+        DeleteAllBillsButton = this.FindControl<Button>("DeleteAllBillsButton");
 
         this.WhenActivated(disposables =>
         {
@@ -32,6 +33,12 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
     /// </summary>
     private void BindButtons()
     {
+        this.BindCommand(
+            ViewModel,
+            viewModel => viewModel.DeleteAllBillsCommand,
+            view => view.DeleteAllBillsButton
+        );
+
         this.BindCommand(
             ViewModel,
             viewModel => viewModel.AddBillCommand,

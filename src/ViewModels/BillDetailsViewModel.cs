@@ -23,6 +23,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
         HostScreen = screen;
         _dbConnector = dbConnector;
         AddBillCommand = ReactiveCommand.CreateFromTask(AddBillAsync);
+        DeleteAllBillsCommand = ReactiveCommand.CreateFromTask(DeleteAllBillsAsync);
 
         // Todo: follow factory pattern, that way we could call this method asynchronously
         SetBasicBillsAsync();
@@ -47,6 +48,11 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// Command to add the new bill to the database.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AddBillCommand { get; }
+
+    /// <summary>
+    /// Command to delete all bills from the database.
+    /// </summary>
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> DeleteAllBillsCommand { get; }
 
     /// <summary>
     /// Binding property for NameOfNewBill element.
@@ -98,6 +104,15 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
             return;
 
         BasicBills.Add(basicBill!);
+    }
+
+    /// <summary>
+    /// Deletes all basic bill records.
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteAllBillsAsync()
+    {
+        await _dbConnector.DeleteAllBasicBillRecords();
     }
 
     /// <summary>

@@ -68,7 +68,7 @@ public class DataBaseConnector
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to initialize `basicbills`. SQL command:\n{@SqlCommandtext}", createTableStatement);
+            _logger.LogError(e, "Failed to initialize `basic_bills`. SQL command:\n{@SqlCommandtext}", createTableStatement);
             return e;
         }
     }
@@ -101,7 +101,7 @@ public class DataBaseConnector
             _logger.LogError
                 (
                     e,
-                    "Failed to insert records into `basicbills`. SQL command:\n{SqlCommandtext}\nModel:\n{Model}",
+                    "Failed to insert records into `basic_bills`. SQL command:\n{SqlCommandtext}\nModel:\n{Model}",
                     insertStatement,
                     serializedModel
                 );
@@ -145,11 +145,40 @@ public class DataBaseConnector
             _logger.LogError
                 (
                     e,
-                    "Failed to select records from `basicbills` table. SQL command: \n{SqlCommandtext}",
+                    "Failed to select records from `basic_bills` table. SQL command: \n{SqlCommandtext}",
                     sqlCommand
                 );
 
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Deletes all records from the basic_bills table.
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteAllBasicBillRecords()
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+
+        const string sqlCommand =
+            """
+                DELETE FROM basic_bills;
+            """;
+
+        try
+        {
+            await connection.ExecuteAsync(sqlCommand);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError
+                (
+                    exception,
+                    "Failed to delete all records from `basic_bills` table. SQL command:\n{SqlCommandtext}",
+                    sqlCommand
+                );
         }
     }
 
@@ -172,7 +201,7 @@ public class DataBaseConnector
             _logger.LogError
                 (
                     exception,
-                    "Failed to drop `basicbills` table. SQL command:\n{SqlCommandtext}",
+                    "Failed to drop `basic_bills` table. SQL command:\n{SqlCommandtext}",
                     sqlCommand
                 );
         }
