@@ -52,7 +52,8 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
     /// <summary>
     /// The x-axis formatting for the cartesian chart.
     /// </summary>
-    public ICartesianAxis[] XAxes { get; set; } = [
+    public ICartesianAxis[] XAxes { get; set; } =
+    [
         new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("MMMM dd"))
     ];
 
@@ -66,7 +67,7 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
     /// </summary>
     public LabelVisual Title { get; set; } = new LabelVisual
     {
-        Text = "My Chart Title",
+        Text = "Account Projection Chart",
         TextSize = 25,
         Padding = new LiveChartsCore.Drawing.Padding(10)
     };
@@ -85,7 +86,8 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
             lineSeries
         };
 
-        XAxes = [
+        XAxes =
+        [
             new Axis
             {
                 Labels = lineSeries.Values?.Select(x => x.DateTime.ToString("yyyy MMM dd")).ToArray()
@@ -114,18 +116,27 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         if (basicBills is null)
             return new LineSeries<DateTimePoint>();
 
-        // Assume bills are due in the current month/year (you can adjust logic as needed)
         DateTime today = DateTime.Today;
         IOrderedEnumerable<BasicBillModel> billsOrdered = basicBills.OrderBy(b => b.DueDayOfMonth);
 
-        List<DateTimePoint> points = new();
+        List<DateTimePoint> points = new()
+        {
+            // Start off with today
+            new DateTimePoint
+            (
+                new DateTime(today.Year, today.Month, today.Day),
+                accountBalance
+            )
+        };
 
         foreach (BasicBillModel bill in billsOrdered)
         {
-            (DateTimePoint dateTimePoint, float newAccountBalance) = HandleBill(bill, today, (float)accountBalance);
+            (DateTimePoint? dateTimePoint, float? newAccountBalance) = HandleBill(bill, today, (float)accountBalance);
+            if (dateTimePoint is null && newAccountBalance is null)
+                continue;
 
-            accountBalance = newAccountBalance;
-            points.Add(dateTimePoint);
+            accountBalance = newAccountBalance!;
+            points.Add(dateTimePoint!);
         }
 
         return new LineSeries<DateTimePoint>
@@ -136,8 +147,11 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         };
     }
 
-    private static (DateTimePoint, float) HandleBill(BasicBillModel bill, DateTime dueDateTime, float accountBalance)
+    private static (DateTimePoint?, float?) HandleBill(BasicBillModel bill, DateTime dueDateTime, float accountBalance)
     {
+        if (bill.DueDayOfMonth < dueDateTime.Day)
+            return (null, null);
+
         // Todo: This is a hacky and quick way to get income/pay checks added into the chart. 
         // Will need to redesign the app and flow of adding in the incomes.
         if (bill.Name == "income")
