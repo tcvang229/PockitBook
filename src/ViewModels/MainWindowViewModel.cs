@@ -82,7 +82,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
             // make async calls
             Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
             Constants.AppViews.BillDetailsView => Router.Navigate.Execute(new BillDetailsViewModel(this, _dbConnector)),
-            Constants.AppViews.AccountProjectionView => Router.Navigate.Execute(new AccountProjectionViewModel(this)),
+            Constants.AppViews.AccountProjectionView => Router.Navigate.Execute(new AccountProjectionViewModel(this, _dbConnector)),
             _ => throw new Exception("Cannot navigate to page, the page does not exist.")
         };
     }
