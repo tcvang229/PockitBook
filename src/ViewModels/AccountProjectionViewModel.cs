@@ -76,7 +76,9 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
 
     private DataBaseConnector _databaseConnector;
 
-    public long OneDayTicks => TimeSpan.FromDays(1).Ticks;
+    private const int _searchProjectionWindow = 2;
+
+    private DateTime _today = DateTime.Today;
 
     private async Task UpdateProjectionAsync()
     {
@@ -108,15 +110,26 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
 
     private async Task<LineSeries<DateTimePoint>> RecalculateAccountProjectionAsync()
     {
-        float? accountBalance = ValidateAccountBalance();
-        if (accountBalance is null)
-            return new LineSeries<DateTimePoint>();
-
         IEnumerable<BasicBillModel>? basicBills = await _databaseConnector.GetBasicBillsAsync();
         if (basicBills is null)
             return new LineSeries<DateTimePoint>();
 
-        DateTime today = DateTime.Today;
+        List<DateTimePoint> linePoints = BuildLinePoints(basicBills);
+
+        return new LineSeries<DateTimePoint>
+        {
+            Values = linePoints,
+            Fill = null,
+            GeometrySize = 20
+        };
+    }
+
+    private List<DateTimePoint> BuildLinePoints(IEnumerable<BasicBillModel> basicBills)
+    {
+        float? accountBalance = ValidateAccountBalance();
+        if (accountBalance is null)
+            return [];
+
         IOrderedEnumerable<BasicBillModel> billsOrdered = basicBills.OrderBy(b => b.DueDayOfMonth);
 
         List<DateTimePoint> points = new()
@@ -124,33 +137,40 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
             // Start off with today
             new DateTimePoint
             (
-                new DateTime(today.Year, today.Month, today.Day),
+                new DateTime(_today.Year, _today.Month, _today.Day),
                 accountBalance
             )
         };
 
-        foreach (BasicBillModel bill in billsOrdered)
+        // Building the rest of the line points.
+        // Build the rest of the line points.
+        for (int i = 0; i < _searchProjectionWindow; i++)
         {
-            (DateTimePoint? dateTimePoint, float? newAccountBalance) = HandleBill(bill, today, (float)accountBalance);
-            if (dateTimePoint is null && newAccountBalance is null)
-                continue;
+            int month = (_today.Month + i - 1) % 12 + 1;
+            int year = _today.Year + (_today.Month + i - 1) / 12;
 
-            accountBalance = newAccountBalance!;
-            points.Add(dateTimePoint!);
+            foreach (BasicBillModel? bill in billsOrdered)
+            {
+                var billDueDate = new DateTime(year, month, bill.DueDayOfMonth);
+                var dateTimePoint = BuildSinglePoint(bill, billDueDate, accountBalance.Value);
+
+                if (dateTimePoint is null)
+                    continue;
+
+                points.Add(dateTimePoint);
+                accountBalance = (float)dateTimePoint.Value!;
+            }
         }
 
-        return new LineSeries<DateTimePoint>
-        {
-            Values = points,
-            Fill = null,
-            GeometrySize = 20
-        };
+
+        return points;
     }
 
-    private static (DateTimePoint?, float?) HandleBill(BasicBillModel bill, DateTime dueDateTime, float accountBalance)
+
+    private DateTimePoint? BuildSinglePoint(BasicBillModel bill, DateTime billDueDate, float accountBalance)
     {
-        if (bill.DueDayOfMonth < dueDateTime.Day)
-            return (null, null);
+        if (billDueDate < _today)
+            return null;
 
         // Todo: This is a hacky and quick way to get income/pay checks added into the chart. 
         // Will need to redesign the app and flow of adding in the incomes.
@@ -159,9 +179,7 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         else
             accountBalance -= bill.AmountDue;
 
-        DateTime dueDate = new(dueDateTime.Year, dueDateTime.Month, bill.DueDayOfMonth);
-        DateTimePoint dateTimePoint = new(dueDate, accountBalance);
-
-        return (dateTimePoint, accountBalance);
+        DateTimePoint dateTimePoint = new(billDueDate, accountBalance);
+        return dateTimePoint;
     }
 }
