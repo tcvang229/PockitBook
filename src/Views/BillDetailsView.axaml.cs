@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
+using PockitBook.Models;
 using PockitBook.ViewModels;
 using ReactiveUI;
 
@@ -20,6 +21,7 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
 
         AddBillButton = this.FindControl<Button>("AddBillButton");
         DeleteAllBillsButton = this.FindControl<Button>("DeleteAllBillsButton");
+        ScheduledItemsGrid = this.FindControl<DataGrid>("ScheduledItemsGrid");
 
         this.WhenActivated(disposables =>
         {
@@ -44,5 +46,17 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
             viewModel => viewModel.AddBillCommand,
             view => view.AddBillButton
         );
+
+        if (ScheduledItemsGrid is not null)
+            ScheduledItemsGrid.CellEditEnded += OnCellEditEnded;
+    }
+
+    private async void OnCellEditEnded(object? sender, DataGridCellEditEndedEventArgs e)
+    {
+        if (e.EditAction != DataGridEditAction.Commit)
+            return;
+
+        if (e.Row.DataContext is ScheduledItem item && ViewModel is not null)
+            await ViewModel.UpdateBillAsync(item);
     }
 }

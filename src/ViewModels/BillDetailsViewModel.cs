@@ -24,6 +24,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
         _scheduledItemRepository = scheduledItemRepository;
         AddBillCommand = ReactiveCommand.CreateFromTask(AddBillAsync);
         DeleteAllBillsCommand = ReactiveCommand.CreateFromTask(DeleteAllBillsAsync);
+        DeleteBillCommand = ReactiveCommand.CreateFromTask<ScheduledItem>(DeleteBillAsync);
 
         // Todo: follow factory pattern, that way we could call this method asynchronously
         InitializeAsync();
@@ -45,9 +46,12 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     public ObservableCollection<ScheduledItem> ScheduledItems { get; set; } = new();
 
     /// <summary>
-    /// The selectable Bill/Income types, for binding to a type-picker control.
+    /// The selectable Bill/Income types, for binding to a type-picker control. Static since this
+    /// is fixed data, not per-instance state - lets both the add-row ComboBox and the grid's
+    /// per-cell editing ComboBox reference it via an x:Static binding without needing to reach
+    /// back up to this ViewModel from inside a DataGrid row template.
     /// </summary>
-    public IEnumerable<ScheduledItemType> ScheduledItemTypeOptions { get; } = Enum.GetValues<ScheduledItemType>();
+    public static IEnumerable<ScheduledItemType> ScheduledItemTypeOptions { get; } = Enum.GetValues<ScheduledItemType>();
 
     /// <summary>
     /// Command to add the new item to the database.
@@ -58,6 +62,11 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// Command to delete all items from the database.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> DeleteAllBillsCommand { get; }
+
+    /// <summary>
+    /// Command to delete a single scheduled item, given as the CommandParameter.
+    /// </summary>
+    public ReactiveCommand<ScheduledItem, System.Reactive.Unit> DeleteBillCommand { get; }
 
     /// <summary>
     /// Binding property for NameOfNewBill element.
@@ -169,6 +178,32 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
 
         await _scheduledItemRepository.DeleteAllAsync(_accountId.Value);
         ScheduledItems.Clear();
+    }
+
+    /// <summary>
+    /// Deletes a single scheduled item.
+    /// </summary>
+    public async Task DeleteBillAsync(ScheduledItem item)
+    {
+        if (item.Id is null)
+            return;
+
+        await _scheduledItemRepository.DeleteAsync(item.Id.Value);
+        ScheduledItems.Remove(item);
+    }
+
+    /// <summary>
+    /// Persists an in-place edit made directly in the Bill Details grid (name, type, due day, or
+    /// amount). Called from the View when a DataGrid cell edit commits.
+    /// </summary>
+    public async Task UpdateBillAsync(ScheduledItem item)
+    {
+        if (item.Id is null)
+            return;
+
+        int rowsAffected = await _scheduledItemRepository.UpdateAsync(item);
+        if (rowsAffected <= 0)
+            ValidationError = "Something went wrong saving that change - please try again.";
     }
 
     /// <summary>

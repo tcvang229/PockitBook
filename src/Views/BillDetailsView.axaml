@@ -1,6 +1,7 @@
 <UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:vm="using:PockitBook.ViewModels"
+    xmlns:models="using:PockitBook.Models"
     x:DataType="vm:BillDetailsViewModel"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     x:Class="PockitBook.Views.BillDetailsView">
@@ -49,7 +50,7 @@
                 <ComboBox
                     Grid.Column="3"
                     Grid.Row="1"
-                    ItemsSource="{Binding ScheduledItemTypeOptions}"
+                    ItemsSource="{x:Static vm:BillDetailsViewModel.ScheduledItemTypeOptions}"
                     SelectedItem="{Binding SelectedType}"/>
                 <Button
                     Grid.Column="4"
@@ -58,13 +59,39 @@
                     Content="Add Bill"/>
             </Grid>
             <DataGrid
+                Name="ScheduledItemsGrid"
                 Grid.Row="1"
+                IsReadOnly="False"
                 ItemsSource="{Binding ScheduledItems}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Name of Bill" Binding="{Binding Name}"/>
-                    <DataGridTextColumn Header="Type" Binding="{Binding Type}"/>
-                    <DataGridTextColumn Header="Due Day" Binding="{Binding AnchorDate.Day}"/>
-                    <DataGridTextColumn Header="Amount Due" Binding="{Binding ExpectedAmount}"/>
+                    <DataGridTextColumn Header="Name of Bill" Binding="{Binding Name, Mode=TwoWay}"/>
+                    <DataGridTemplateColumn Header="Type">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="models:ScheduledItem">
+                                <TextBlock Text="{Binding Type}" VerticalAlignment="Center" Margin="4,0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate x:DataType="models:ScheduledItem">
+                                <ComboBox
+                                    ItemsSource="{x:Static vm:BillDetailsViewModel.ScheduledItemTypeOptions}"
+                                    SelectedItem="{Binding Type, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Due Day" Binding="{Binding DueDay, Mode=TwoWay}"/>
+                    <DataGridTextColumn Header="Amount Due" Binding="{Binding ExpectedAmount, Mode=TwoWay}"/>
+                    <DataGridTemplateColumn Header="">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button
+                                    Content="Delete"
+                                    Command="{Binding $parent[UserControl].((vm:BillDetailsViewModel)DataContext).DeleteBillCommand}"
+                                    CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

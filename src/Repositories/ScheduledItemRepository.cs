@@ -94,6 +94,63 @@ public class ScheduledItemRepository
     }
 
     /// <summary>
+    /// Updates an existing scheduled item's editable fields.
+    /// </summary>
+    public async Task<int> UpdateAsync(ScheduledItem item)
+    {
+        using var connection = new SqliteConnection(_database._connectionString);
+        await connection.OpenAsync();
+
+        const string updateStatement =
+            """
+                UPDATE scheduled_items
+                SET
+                    name = @Name,
+                    type = @Type,
+                    expected_amount = @ExpectedAmount,
+                    recurrence = @Recurrence,
+                    anchor_date = @AnchorDate,
+                    start_date = @StartDate,
+                    end_date = @EndDate,
+                    category = @Category,
+                    is_active = @IsActive
+                WHERE
+                    id = @Id
+            """;
+
+        try
+        {
+            return await connection.ExecuteAsync(updateStatement, item);
+        }
+        catch (Exception e)
+        {
+            string serializedModel = JsonSerializer.Serialize(item);
+            _logger.LogError(e, "Failed to update `scheduled_items`. Model:\n{Model}", serializedModel);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a single scheduled item.
+    /// </summary>
+    public async Task DeleteAsync(int id)
+    {
+        using var connection = new SqliteConnection(_database._connectionString);
+        await connection.OpenAsync();
+
+        const string sqlCommand = "DELETE FROM scheduled_items WHERE id = @Id;";
+
+        try
+        {
+            await connection.ExecuteAsync(sqlCommand, new { Id = id });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to delete record {Id} from `scheduled_items` table.", id);
+        }
+    }
+
+    /// <summary>
     /// Deletes all scheduled items for the given account.
     /// </summary>
     public async Task DeleteAllAsync(int accountId)
