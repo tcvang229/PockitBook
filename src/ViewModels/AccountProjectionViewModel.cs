@@ -1,29 +1,49 @@
 using System;
-using LiveChartsCore.Defaults;
-using ReactiveUI;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using LiveChartsCore;
+using LiveChartsCore.Defaults;
+using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.VisualElements;
-using PockitBook.Services;
-using System.Threading.Tasks;
 using PockitBook.Models;
-using System.Collections.Generic;
-using System.Linq;
-using LiveChartsCore.Kernel.Sketches;
+using PockitBook.Services;
+using PockitBook.Repositories;
+using ReactiveUI;
 
 namespace PockitBook.ViewModels;
 
+/// <summary>
+/// The view model for the Account Projection view - shows the actual balance history
+/// (from recorded Transactions) alongside a projected balance (from active ScheduledItems),
+/// split at today.
+/// </summary>
 public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewModel
 {
+    private const int ProjectionWindowMonths = 2;
+
     /// <summary>
     /// Constructor.
     /// </summary>
-    /// <param name="screen"></param>
-    /// <param name="dbConnector"></param>
-    public AccountProjectionViewModel(IScreen screen, DataBaseConnector dataBaseConnector)
+    public AccountProjectionViewModel(
+        IScreen screen,
+        AccountRepository accountRepository,
+        ScheduledItemRepository scheduledItemRepository,
+        TransactionRepository transactionRepository,
+        BalanceCheckpointRepository balanceCheckpointRepository,
+        CsvImportService csvImportService)
     {
         HostScreen = screen;
-        _databaseConnector = dataBaseConnector;
+        _accountRepository = accountRepository;
+        _scheduledItemRepository = scheduledItemRepository;
+        _transactionRepository = transactionRepository;
+        _balanceCheckpointRepository = balanceCheckpointRepository;
+        _csvImportService = csvImportService;
+        _projectionCalculator = new ProjectionCalculator();
+
+        OverrideBalanceCommand = ReactiveCommand.CreateFromTask(OverrideBalanceAsync);
     }
 
     /// <summary>
@@ -37,30 +57,78 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
     public string UrlPathSegment { get; set; } = $"Account Projection page: {Guid.NewGuid().ToString().Substring(0, 5)}";
 
     /// <summary>
-    /// The account balance to add or substract bill amounts from.
+    /// The computed, read-only current balance for the primary account (most recent
+    /// BalanceCheckpoint plus transactions since).
     /// </summary>
-    public string AccountBalance
+    public decimal ComputedBalance
     {
-        get => _accountBalance;
-        set
-        {
-            this.RaiseAndSetIfChanged(ref _accountBalance, value);
-            _ = UpdateProjectionAsync();
-        }
+        get => _computedBalance;
+        set => this.RaiseAndSetIfChanged(ref _computedBalance, value);
+    }
+
+    /// <summary>
+    /// Binding property for a manual balance override entry.
+    /// </summary>
+    public string OverrideBalanceInput
+    {
+        get => _overrideBalanceInput;
+        set => this.RaiseAndSetIfChanged(ref _overrideBalanceInput, value);
+    }
+
+    /// <summary>
+    /// Validation/error feedback for the override input.
+    /// </summary>
+    public string ValidationError
+    {
+        get => _validationError;
+        set => this.RaiseAndSetIfChanged(ref _validationError, value);
+    }
+
+    /// <summary>
+    /// Command to write a manual BalanceCheckpoint from OverrideBalanceInput.
+    /// </summary>
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> OverrideBalanceCommand { get; }
+
+    /// <summary>
+    /// The accounts available to import a CSV into.
+    /// </summary>
+    public ObservableCollection<Account> ImportAccounts { get; set; } = new();
+
+    /// <summary>
+    /// The account currently selected as the CSV import target.
+    /// </summary>
+    public Account? SelectedImportAccount
+    {
+        get => _selectedImportAccount;
+        set => this.RaiseAndSetIfChanged(ref _selectedImportAccount, value);
+    }
+
+    /// <summary>
+    /// Feedback shown to the user after a CSV import.
+    /// </summary>
+    public string ImportStatusMessage
+    {
+        get => _importStatusMessage;
+        set => this.RaiseAndSetIfChanged(ref _importStatusMessage, value);
     }
 
     /// <summary>
     /// The x-axis formatting for the cartesian chart.
     /// </summary>
-    public ICartesianAxis[] XAxes { get; set; } =
-    [
-        new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("MMMM dd"))
-    ];
+    public ICartesianAxis[] XAxes
+    {
+        get => _xAxes;
+        set => this.RaiseAndSetIfChanged(ref _xAxes, value);
+    }
 
     /// <summary>
-    /// The array of data for graph plots.
+    /// The array of data for graph plots - one actual series and one projected series.
     /// </summary>
-    public ISeries[] Series { get; set; } = [];
+    public ISeries[] Series
+    {
+        get => _series;
+        set => this.RaiseAndSetIfChanged(ref _series, value);
+    }
 
     /// <summary>
     /// The characteristics of the graph.
@@ -72,114 +140,144 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         Padding = new LiveChartsCore.Drawing.Padding(10)
     };
 
-    private string _accountBalance = string.Empty;
+    private readonly AccountRepository _accountRepository;
+    private readonly ScheduledItemRepository _scheduledItemRepository;
+    private readonly TransactionRepository _transactionRepository;
+    private readonly BalanceCheckpointRepository _balanceCheckpointRepository;
+    private readonly CsvImportService _csvImportService;
+    private readonly ProjectionCalculator _projectionCalculator;
 
-    private DataBaseConnector _databaseConnector;
+    private int? _displayAccountId;
+    private decimal _computedBalance;
+    private string _overrideBalanceInput = string.Empty;
+    private string _validationError = string.Empty;
+    private Account? _selectedImportAccount;
+    private string _importStatusMessage = string.Empty;
+    private ICartesianAxis[] _xAxes = [new DateTimeAxis(TimeSpan.FromDays(1), date => date.ToString("MMMM dd"))];
+    private ISeries[] _series = [];
 
-    private const int _searchProjectionWindow = 2;
+    /// <inheritdoc />
+    protected override void OnPageLoadedEventHandler()
+    {
+        _ = InitializeAsync();
+    }
 
-    private DateTime _today = DateTime.Today;
+    /// <summary>
+    /// Loads the accounts (for the import picker) and the primary account's projection.
+    /// The primary/displayed account is fixed to "Checking" for v1 - see the refactor design
+    /// doc's "multi-account UI" cut.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        IEnumerable<Account> accounts = await _accountRepository.GetAllAsync();
+        ImportAccounts = new ObservableCollection<Account>(accounts);
+        SelectedImportAccount = ImportAccounts.FirstOrDefault();
 
+        Account? primaryAccount = ImportAccounts.FirstOrDefault(a => a.Name == AccountRepository.SeedAccountNames[0]);
+        _displayAccountId = primaryAccount?.Id;
+
+        await UpdateProjectionAsync();
+    }
+
+    /// <summary>
+    /// Recomputes the actual + projected series and the displayed balance.
+    /// </summary>
     private async Task UpdateProjectionAsync()
     {
-        LineSeries<DateTimePoint> lineSeries = await RecalculateAccountProjectionAsync();
-        Series = new ISeries[]
+        if (_displayAccountId is null)
+            return;
+
+        int accountId = _displayAccountId.Value;
+        DateTime today = DateTime.Today;
+
+        // GetBalanceHistoryAsync always returns at least the anchor point, so its last value is
+        // always the current computed balance - GetComputedBalanceAsync exists as a separately
+        // testable/reusable piece of this formula (see BalanceCheckpointRepositoryTests), not as
+        // the primary path here.
+        List<DateTimePoint> actualPoints = await _balanceCheckpointRepository.GetBalanceHistoryAsync(accountId, today);
+        decimal currentBalance = (decimal)actualPoints[^1].Value!;
+        ComputedBalance = currentBalance;
+
+        IEnumerable<ScheduledItem> scheduledItems = await _scheduledItemRepository.GetByAccountAsync(accountId);
+        DateTime windowEnd = today.AddMonths(ProjectionWindowMonths);
+        List<DateTimePoint> projectedPoints = _projectionCalculator.BuildProjection(currentBalance, today, windowEnd, scheduledItems);
+
+        var actualSeries = new LineSeries<DateTimePoint>
         {
-            lineSeries
-        };
-
-        XAxes =
-        [
-            new Axis
-            {
-                Labels = lineSeries.Values?.Select(x => x.DateTime.ToString("yyyy MMM dd")).ToArray()
-            }
-        ];
-
-        this.RaisePropertyChanged(nameof(Series));
-    }
-
-    private float? ValidateAccountBalance()
-    {
-        bool isAccountBalanceValid = float.TryParse(_accountBalance, out float accountBalance);
-        if (!isAccountBalanceValid)
-            return null;
-
-        return accountBalance;
-    }
-
-    private async Task<LineSeries<DateTimePoint>> RecalculateAccountProjectionAsync()
-    {
-        IEnumerable<BasicBillModel>? basicBills = await _databaseConnector.GetBasicBillsAsync();
-        if (basicBills is null)
-            return new LineSeries<DateTimePoint>();
-
-        List<DateTimePoint> linePoints = BuildLinePoints(basicBills);
-
-        return new LineSeries<DateTimePoint>
-        {
-            Values = linePoints,
+            Name = "Actual",
+            Values = actualPoints,
             Fill = null,
-            GeometrySize = 20
+            GeometrySize = 8
         };
+
+        var projectedSeries = new LineSeries<DateTimePoint>
+        {
+            Name = "Projected",
+            Values = projectedPoints,
+            Fill = null,
+            GeometrySize = 8
+        };
+
+        Series = [actualSeries, projectedSeries];
+
+        // XAxes is left as the DateTimeAxis set in its field initializer - LiveCharts scales and
+        // labels it automatically from the series' real DateTimePoint values. It used to be
+        // overwritten here with a categorical Axis{Labels=...}, which rendered the curve fine but
+        // left the x-axis with no visible date labels at all (Labels expects index-based lookups
+        // that don't correspond to a date-scaled axis's actual tick positions).
     }
 
-    private List<DateTimePoint> BuildLinePoints(IEnumerable<BasicBillModel> basicBills)
+    /// <summary>
+    /// Writes a manual BalanceCheckpoint from OverrideBalanceInput and refreshes the projection.
+    /// </summary>
+    private async Task OverrideBalanceAsync()
     {
-        float? accountBalance = ValidateAccountBalance();
-        if (accountBalance is null)
-            return [];
+        ValidationError = string.Empty;
 
-        IOrderedEnumerable<BasicBillModel> billsOrdered = basicBills.OrderBy(b => b.DueDayOfMonth);
-
-        List<DateTimePoint> points = new()
+        if (_displayAccountId is null)
         {
-            // Start off with today
-            new DateTimePoint
-            (
-                new DateTime(_today.Year, _today.Month, _today.Day),
-                accountBalance
-            )
-        };
-
-        // Building the rest of the line points.
-        // Build the rest of the line points.
-        for (int i = 0; i < _searchProjectionWindow; i++)
-        {
-            int month = (_today.Month + i - 1) % 12 + 1;
-            int year = _today.Year + (_today.Month + i - 1) / 12;
-
-            foreach (BasicBillModel? bill in billsOrdered)
-            {
-                var billDueDate = new DateTime(year, month, bill.DueDayOfMonth);
-                var dateTimePoint = BuildSinglePoint(bill, billDueDate, accountBalance.Value);
-
-                if (dateTimePoint is null)
-                    continue;
-
-                points.Add(dateTimePoint);
-                accountBalance = (float)dateTimePoint.Value!;
-            }
+            ValidationError = "The account isn't ready yet - please try again in a moment.";
+            return;
         }
 
+        bool isValid = decimal.TryParse(OverrideBalanceInput, out decimal newBalance);
+        if (!isValid)
+        {
+            ValidationError = "Enter a valid numeric balance.";
+            return;
+        }
 
-        return points;
+        await _balanceCheckpointRepository.AddAsync(new BalanceCheckpoint
+        {
+            AccountId = _displayAccountId.Value,
+            Date = DateTime.Today,
+            Balance = newBalance,
+            Source = TransactionSource.Manual,
+            Note = "Manual override"
+        });
+
+        OverrideBalanceInput = string.Empty;
+        await UpdateProjectionAsync();
     }
 
-
-    private DateTimePoint? BuildSinglePoint(BasicBillModel bill, DateTime billDueDate, float accountBalance)
+    /// <summary>
+    /// Imports a CSV file into the currently selected import account, then refreshes the
+    /// projection if that account is the one being displayed.
+    /// </summary>
+    public async Task ImportCsvAsync(string filePath)
     {
-        if (billDueDate < _today)
-            return null;
+        if (SelectedImportAccount?.Id is null)
+        {
+            ImportStatusMessage = "Select an account first.";
+            return;
+        }
 
-        // Todo: This is a hacky and quick way to get income/pay checks added into the chart. 
-        // Will need to redesign the app and flow of adding in the incomes.
-        if (bill.Name == "income")
-            accountBalance += bill.AmountDue;
-        else
-            accountBalance -= bill.AmountDue;
+        CsvImportResult result = await _csvImportService.ImportAsync(SelectedImportAccount.Id.Value, filePath);
+        ImportStatusMessage =
+            $"Imported {result.ImportedRows} of {result.PostedRows} posted rows " +
+            $"({result.DuplicateRows} duplicates skipped, {result.SkippedPendingRows} pending rows not yet posted).";
 
-        DateTimePoint dateTimePoint = new(billDueDate, accountBalance);
-        return dateTimePoint;
+        if (_displayAccountId is not null && SelectedImportAccount.Id == _displayAccountId.Value)
+            await UpdateProjectionAsync();
     }
 }

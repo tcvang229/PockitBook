@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using PockitBook.ViewModels;
 using PockitBook.Services;
+using PockitBook.Repositories;
 using ReactiveUI;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -23,16 +24,28 @@ public static class ServiceCollectionExtensions
         serviceCollection.AddSingleton<RoutingState>();
 
         serviceCollection.AddSingleton(
-            serviceProvider => new DataBaseConnector(
+            serviceProvider => new SqliteDatabase(
                 dbName: dbName,
-                logger: serviceProvider.GetRequiredService<ILogger<DataBaseConnector>>(),
+                logger: serviceProvider.GetRequiredService<ILogger<SqliteDatabase>>(),
                 isTesting: isTesting
                 ));
+
+        serviceCollection.AddSingleton<AccountRepository>();
+        serviceCollection.AddSingleton<ScheduledItemRepository>();
+        serviceCollection.AddSingleton<TransactionRepository>();
+        serviceCollection.AddSingleton<BalanceCheckpointRepository>();
+        serviceCollection.AddSingleton<ImportBatchRepository>();
+        serviceCollection.AddSingleton<CsvImportService>();
 
         serviceCollection.AddSingleton(
             serviceProvider => new MainWindowViewModel(
                 router: serviceProvider.GetRequiredService<RoutingState>(),
-                dbConnector: serviceProvider.GetRequiredService<DataBaseConnector>(),
+                database: serviceProvider.GetRequiredService<SqliteDatabase>(),
+                accountRepository: serviceProvider.GetRequiredService<AccountRepository>(),
+                scheduledItemRepository: serviceProvider.GetRequiredService<ScheduledItemRepository>(),
+                transactionRepository: serviceProvider.GetRequiredService<TransactionRepository>(),
+                balanceCheckpointRepository: serviceProvider.GetRequiredService<BalanceCheckpointRepository>(),
+                csvImportService: serviceProvider.GetRequiredService<CsvImportService>(),
                 isTesting: isTesting
             ));
 

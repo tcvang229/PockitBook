@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using PockitBook.Models;
 using PockitBook.Services;
+using PockitBook.Repositories;
 using ReactiveUI;
 
 namespace PockitBook.ViewModels;
@@ -16,17 +17,16 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <summary>
     /// Constructor.
     /// </summary>
-    /// <param name="screen"></param>
-    /// <param name="dbConnector"></param>
-    public BillDetailsViewModel(IScreen screen, DataBaseConnector dbConnector)
+    public BillDetailsViewModel(IScreen screen, AccountRepository accountRepository, ScheduledItemRepository scheduledItemRepository)
     {
         HostScreen = screen;
-        _dbConnector = dbConnector;
+        _accountRepository = accountRepository;
+        _scheduledItemRepository = scheduledItemRepository;
         AddBillCommand = ReactiveCommand.CreateFromTask(AddBillAsync);
         DeleteAllBillsCommand = ReactiveCommand.CreateFromTask(DeleteAllBillsAsync);
 
         // Todo: follow factory pattern, that way we could call this method asynchronously
-        SetBasicBillsAsync();
+        InitializeAsync();
     }
 
     /// <summary>
@@ -40,17 +40,22 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     public string UrlPathSegment { get; set; } = $"Bill Details page: {Guid.NewGuid().ToString().Substring(0, 5)}";
 
     /// <summary>
-    /// List of bills.
+    /// List of scheduled bills/income for the primary account.
     /// </summary>
-    public ObservableCollection<BasicBillModel> BasicBills { get; set; } = new();
+    public ObservableCollection<ScheduledItem> ScheduledItems { get; set; } = new();
 
     /// <summary>
-    /// Command to add the new bill to the database.
+    /// The selectable Bill/Income types, for binding to a type-picker control.
+    /// </summary>
+    public IEnumerable<ScheduledItemType> ScheduledItemTypeOptions { get; } = Enum.GetValues<ScheduledItemType>();
+
+    /// <summary>
+    /// Command to add the new item to the database.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AddBillCommand { get; }
 
     /// <summary>
-    /// Command to delete all bills from the database.
+    /// Command to delete all items from the database.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> DeleteAllBillsCommand { get; }
 
@@ -81,72 +86,142 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
         set => this.RaiseAndSetIfChanged(ref _amountDue, value);
     }
 
-    private DataBaseConnector _dbConnector;
-    private string _nameOfnewBill = string.Empty;
-    private string _dueDay = string.Empty;
-    private string _amountDue = string.Empty;
-
     /// <summary>
-    /// Adds a Basic Bill to the UI and database.
+    /// Binding property for whether the new item is a Bill or Income.
     /// </summary>
-    public async Task AddBillAsync()
+    public ScheduledItemType SelectedType
     {
-        BasicBillModel? basicBill = BuildBasicBill(NameOfNewBill, DueDay, AmountDue);
-
-        // TODO: Tell the user that they can't add the new bill because it doesn't meet the requirements
-        if (basicBill is null)
-            return;
-
-        int rowsAffected = await _dbConnector.AddBasicBillAsync(basicBill);
-
-        // TODO: Tell the user that something went wrong with the database
-        if (rowsAffected <= 0)
-            return;
-
-        BasicBills.Add(basicBill!);
+        get => _selectedType;
+        set => this.RaiseAndSetIfChanged(ref _selectedType, value);
     }
 
     /// <summary>
-    /// Deletes all basic bill records.
+    /// Validation/error feedback for the user, empty when there's nothing to show.
+    /// </summary>
+    public string ValidationError
+    {
+        get => _validationError;
+        set => this.RaiseAndSetIfChanged(ref _validationError, value);
+    }
+
+    private readonly AccountRepository _accountRepository;
+    private readonly ScheduledItemRepository _scheduledItemRepository;
+    private int? _accountId;
+    private string _nameOfnewBill = string.Empty;
+    private string _dueDay = string.Empty;
+    private string _amountDue = string.Empty;
+    private ScheduledItemType _selectedType = ScheduledItemType.Bill;
+    private string _validationError = string.Empty;
+
+    /// <summary>
+    /// Resolves the primary account and loads its scheduled items.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        Account? account = await _accountRepository.GetByNameAsync(AccountRepository.SeedAccountNames[0]);
+        _accountId = account?.Id;
+
+        await SetScheduledItemsAsync();
+    }
+
+    /// <summary>
+    /// Adds a Bill or Income item to the UI and database.
+    /// </summary>
+    public async Task AddBillAsync()
+    {
+        ValidationError = string.Empty;
+
+        if (_accountId is null)
+        {
+            ValidationError = "The account isn't ready yet - please try again in a moment.";
+            return;
+        }
+
+        ScheduledItem? scheduledItem = BuildScheduledItem(_accountId.Value, NameOfNewBill, DueDay, AmountDue, SelectedType);
+        if (scheduledItem is null)
+        {
+            ValidationError = "Enter a name, a day of month between 1 and 31, and a numeric amount.";
+            return;
+        }
+
+        int rowsAffected = await _scheduledItemRepository.AddAsync(scheduledItem);
+        if (rowsAffected <= 0)
+        {
+            ValidationError = "Something went wrong saving this item - please try again.";
+            return;
+        }
+
+        ScheduledItems.Add(scheduledItem);
+
+        NameOfNewBill = string.Empty;
+        DueDay = string.Empty;
+        AmountDue = string.Empty;
+    }
+
+    /// <summary>
+    /// Deletes all scheduled items for the primary account.
     /// </summary>
     /// <returns></returns>
     public async Task DeleteAllBillsAsync()
     {
-        await _dbConnector.DeleteAllBasicBillRecords();
+        if (_accountId is null)
+            return;
+
+        await _scheduledItemRepository.DeleteAllAsync(_accountId.Value);
+        ScheduledItems.Clear();
     }
 
     /// <summary>
-    /// Tries to build a Basic Bill model.
+    /// Tries to build a ScheduledItem model. A fixed Monthly recurrence is used here since
+    /// this page only collects a day-of-month; other recurrences are set directly in the
+    /// database until this page grows a fuller recurrence picker.
     /// </summary>
-    /// <param name="nameOfNewBill"></param>
-    /// <param name="dueDayOfMonth"></param>
-    /// <param name="amountDue"></param>
-    /// <returns></returns>
-    public BasicBillModel? BuildBasicBill(string nameOfNewBill, string stringifiedDueDay, string stringifiedAmountDue)
+    public ScheduledItem? BuildScheduledItem(
+        int accountId,
+        string nameOfNewBill,
+        string stringifiedDueDay,
+        string stringifiedAmountDue,
+        ScheduledItemType type)
     {
-        bool isDueDayOfMonthValid = int.TryParse(stringifiedDueDay, out int dueDay);
-        if (isDueDayOfMonthValid && (dueDay > 31 || dueDay < 1))
+        if (string.IsNullOrWhiteSpace(nameOfNewBill))
             return null;
 
-        bool isAmountDueValid = float.TryParse(stringifiedAmountDue, out float amountDue);
+        bool isDueDayOfMonthValid = int.TryParse(stringifiedDueDay, out int dueDay);
+        if (!isDueDayOfMonthValid || dueDay > 31 || dueDay < 1)
+            return null;
+
+        bool isAmountDueValid = decimal.TryParse(stringifiedAmountDue, out decimal amountDue);
         if (!isAmountDueValid)
             return null;
 
-        return new BasicBillModel
+        DateTime today = DateTime.Today;
+        int clampedDay = Math.Min(dueDay, DateTime.DaysInMonth(today.Year, today.Month));
+        DateTime anchorDate = new(today.Year, today.Month, clampedDay);
+
+        return new ScheduledItem
         {
+            AccountId = accountId,
             Name = nameOfNewBill,
-            DueDayOfMonth = dueDay,
-            AmountDue = amountDue
+            Type = type,
+            ExpectedAmount = amountDue,
+            Recurrence = RecurrenceType.Monthly,
+            AnchorDate = anchorDate,
+            StartDate = today,
+            EndDate = null,
+            IsActive = true
         };
     }
 
     /// <summary>
-    /// Sets the BasicBills by fetching the data in the database.
+    /// Sets the ScheduledItems by fetching the data in the database for the primary account.
     /// </summary>
     /// <returns></returns>
-    public async Task SetBasicBillsAsync()
+    public async Task SetScheduledItemsAsync()
     {
-        IEnumerable<BasicBillModel>? basicBills = await _dbConnector.GetBasicBillsAsync() ?? Array.Empty<BasicBillModel>();
-        BasicBills = new ObservableCollection<BasicBillModel>(basicBills!);
+        if (_accountId is null)
+            return;
+
+        IEnumerable<ScheduledItem> scheduledItems = await _scheduledItemRepository.GetByAccountAsync(_accountId.Value);
+        ScheduledItems = new ObservableCollection<ScheduledItem>(scheduledItems);
     }
 }

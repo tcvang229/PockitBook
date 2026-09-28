@@ -4,12 +4,12 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 
-namespace PockitBook.Services;
+namespace PockitBook.Repositories;
 
 /// <summary>
 /// Class that handles SQLite database connection and schema setup.
 /// </summary>
-public class DataBaseConnector
+public class SqliteDatabase
 {
     /// <summary>
     /// Constructor.
@@ -17,7 +17,7 @@ public class DataBaseConnector
     /// <param name="dbName"></param>
     /// <param name="logger"></param>
     /// <param name="isTesting"></param>
-    public DataBaseConnector(string dbName, ILogger<DataBaseConnector> logger, bool isTesting = false)
+    public SqliteDatabase(string dbName, ILogger<SqliteDatabase> logger, bool isTesting = false)
     {
         // Todo: could probably set this up in appsettings.json. could then manipulate what appsettings.json file
         // to use during testing vs production vs local development
@@ -32,7 +32,7 @@ public class DataBaseConnector
     }
 
     internal readonly string _connectionString;
-    private ILogger<DataBaseConnector> _logger;
+    private ILogger<SqliteDatabase> _logger;
 
     /// <summary>
     /// Initial database setup. Drops the legacy `basic_bills` table (superseded by

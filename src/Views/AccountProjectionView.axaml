@@ -1,26 +1,40 @@
-<UserControl 
+<UserControl
     xmlns="https://github.com/avaloniaui"
     xmlns:vm="using:PockitBook.ViewModels"
     x:DataType="vm:AccountProjectionViewModel"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:lvs="using:LiveChartsCore.SkiaSharpView.Avalonia"
     x:Class="PockitBook.Views.AccountProjectionView">
-    <Grid RowDefinitions="*,*" ColumnDefinitions="*,Auto">
+    <Grid RowDefinitions="*" ColumnDefinitions="*,Auto">
         <lvs:CartesianChart
             Grid.Column="0"
             Grid.Row="0"
-            Grid.RowSpan="2"
             Series="{Binding Series}"
             Title="{Binding Title}"
             XAxes="{Binding XAxes}"
+            ZoomMode="Both"
             >
         </lvs:CartesianChart>
 
-        <TextBox 
-            Grid.Column="1" 
-            Grid.Row="0"
-            Watermark="Enter your current balance"
-            Text="{Binding AccountBalance}"
-            />
+        <StackPanel Grid.Column="1" Grid.Row="0" Width="220" Spacing="8" Margin="8">
+            <TextBlock Text="Current balance" FontWeight="Bold"/>
+            <TextBlock Text="{Binding ComputedBalance}"/>
+
+            <TextBlock Text="Override balance" FontWeight="Bold" Margin="0,12,0,0"/>
+            <TextBox
+                Watermark="Enter a corrected balance"
+                Text="{Binding OverrideBalanceInput}"/>
+            <Button Name="OverrideBalanceButton" Content="Save Override"/>
+            <TextBlock Text="{Binding ValidationError}" Foreground="Red" TextWrapping="Wrap"/>
+
+            <TextBlock Text="Import CSV" FontWeight="Bold" Margin="0,12,0,0"/>
+            <ComboBox
+                ItemsSource="{Binding ImportAccounts}"
+                SelectedItem="{Binding SelectedImportAccount}"
+                DisplayMemberBinding="{Binding Name}"
+                HorizontalAlignment="Stretch"/>
+            <Button Name="ImportCsvButton" Content="Import CSV..."/>
+            <TextBlock Text="{Binding ImportStatusMessage}" TextWrapping="Wrap"/>
+        </StackPanel>
     </Grid>
 </UserControl>
