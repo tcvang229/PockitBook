@@ -9,6 +9,10 @@
                 VerticalAlignment="Center">
         <TextBlock Text="{Binding UrlPathSegment}" />
         <TextBlock Text="{Binding ValidationError}" Foreground="Red" />
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <Button Name="ImportBillsCsvButton" Content="Import Bills CSV..."/>
+            <TextBlock Text="{Binding ImportStatusMessage}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </StackPanel>
         <Grid RowDefinitions="*,*">
             <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="*,*">
                 <TextBlock

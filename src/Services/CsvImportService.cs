@@ -137,7 +137,7 @@ public class CsvImportService
             if (string.IsNullOrWhiteSpace(lines[i]))
                 continue;
 
-            string[] fields = SplitCsvLine(lines[i]);
+            string[] fields = CsvLineSplitter.Split(lines[i]);
             if (fields.Length < 5)
                 continue;
 
@@ -167,54 +167,5 @@ public class CsvImportService
         string input = $"{date:yyyy-MM-dd}|{amount}|{description}|{occurrenceIndex}";
         byte[] hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hashBytes);
-    }
-
-    /// <summary>
-    /// Splits one CSV line into fields, honoring double-quoted fields (including escaped ""
-    /// quotes within a field) rather than naively splitting on every comma.
-    /// </summary>
-    private static string[] SplitCsvLine(string line)
-    {
-        var fields = new List<string>();
-        var current = new StringBuilder();
-        bool inQuotes = false;
-
-        for (int i = 0; i < line.Length; i++)
-        {
-            char c = line[i];
-
-            if (inQuotes)
-            {
-                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    current.Append('"');
-                    i++;
-                }
-                else if (c == '"')
-                {
-                    inQuotes = false;
-                }
-                else
-                {
-                    current.Append(c);
-                }
-            }
-            else if (c == '"')
-            {
-                inQuotes = true;
-            }
-            else if (c == ',')
-            {
-                fields.Add(current.ToString());
-                current.Clear();
-            }
-            else
-            {
-                current.Append(c);
-            }
-        }
-
-        fields.Add(current.ToString());
-        return fields.ToArray();
     }
 }

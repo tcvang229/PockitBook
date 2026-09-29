@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Dapper;
-using LiveChartsCore.Defaults;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging;
 using PockitBook.Models;
@@ -171,7 +170,7 @@ public class BalanceCheckpointRepository
     /// what the transaction math said), which is how a real drift correction between two
     /// checkpoints still shows up as a visible jump.
     /// </summary>
-    public async Task<List<DateTimePoint>> GetBalanceHistoryAsync(int accountId, DateTime throughDate)
+    public async Task<List<LabeledDateTimePoint>> GetBalanceHistoryAsync(int accountId, DateTime throughDate)
     {
         List<Transaction> orderedTransactions = (await _transactionRepository.GetByAccountThroughDateAsync(accountId, throughDate))
             .OrderBy(transaction => transaction.Date)
@@ -182,7 +181,7 @@ public class BalanceCheckpointRepository
         if (orderedCheckpoints.Count == 0)
             return BuildZeroAnchoredHistory(orderedTransactions, throughDate);
 
-        var points = new List<DateTimePoint>();
+        var points = new List<LabeledDateTimePoint>();
         BalanceCheckpoint firstCheckpoint = orderedCheckpoints[0];
 
         // Transactions strictly before the first checkpoint get reconstructed backward from it.
@@ -194,14 +193,14 @@ public class BalanceCheckpointRepository
         if (transactionsBeforeFirstCheckpoint.Count > 0)
         {
             decimal cursorBalance = firstCheckpoint.Balance;
-            var backwardPoints = new List<DateTimePoint>();
+            var backwardPoints = new List<LabeledDateTimePoint>();
 
             foreach (Transaction transaction in transactionsBeforeFirstCheckpoint)
             {
                 // cursorBalance currently represents the balance immediately AFTER `transaction`
                 // (true for the latest one, since nothing else happens between it and the
                 // checkpoint) - record that, then undo it to find the balance before it.
-                backwardPoints.Add(new DateTimePoint(transaction.Date, (double)cursorBalance));
+                backwardPoints.Add(new LabeledDateTimePoint(transaction.Date, (double)cursorBalance, transaction.Description, transaction.Amount));
                 cursorBalance -= transaction.Amount;
             }
 
@@ -210,11 +209,11 @@ public class BalanceCheckpointRepository
             // cursorBalance now holds the reconstructed true starting balance, before the
             // earliest transaction we have - this is the number that answers "it probably
             // doesn't actually start at zero, right?".
-            points.Add(new DateTimePoint(transactionsBeforeFirstCheckpoint[^1].Date, (double)cursorBalance));
+            points.Add(new LabeledDateTimePoint(transactionsBeforeFirstCheckpoint[^1].Date, (double)cursorBalance, "Starting balance"));
             points.AddRange(backwardPoints);
         }
 
-        points.Add(new DateTimePoint(firstCheckpoint.Date, (double)firstCheckpoint.Balance));
+        points.Add(new LabeledDateTimePoint(firstCheckpoint.Date, (double)firstCheckpoint.Balance, firstCheckpoint.Note ?? "Balance checkpoint"));
 
         // From here on, walk forward exactly as before: remaining transactions/checkpoints after
         // the first checkpoint, snapping the balance at each subsequent checkpoint.
@@ -229,7 +228,7 @@ public class BalanceCheckpointRepository
                 BalanceCheckpoint checkpoint = orderedCheckpoints[checkpointIndex];
                 runningBalance = checkpoint.Balance;
                 lastAppliedDate = checkpoint.Date;
-                points.Add(new DateTimePoint(checkpoint.Date, (double)runningBalance));
+                points.Add(new LabeledDateTimePoint(checkpoint.Date, (double)runningBalance, checkpoint.Note ?? "Balance checkpoint"));
                 checkpointIndex++;
             }
         }
@@ -245,7 +244,7 @@ public class BalanceCheckpointRepository
 
             runningBalance += transaction.Amount;
             lastAppliedDate = transaction.Date;
-            points.Add(new DateTimePoint(transaction.Date, (double)runningBalance));
+            points.Add(new LabeledDateTimePoint(transaction.Date, (double)runningBalance, transaction.Description, transaction.Amount));
         }
 
         ApplyCheckpointsThrough(throughDate);
@@ -253,18 +252,18 @@ public class BalanceCheckpointRepository
         return points;
     }
 
-    private static List<DateTimePoint> BuildZeroAnchoredHistory(List<Transaction> orderedTransactions, DateTime throughDate)
+    private static List<LabeledDateTimePoint> BuildZeroAnchoredHistory(List<Transaction> orderedTransactions, DateTime throughDate)
     {
         if (orderedTransactions.Count == 0)
-            return [new DateTimePoint(throughDate, 0d)];
+            return [new LabeledDateTimePoint(throughDate, 0d, "Starting balance")];
 
-        var points = new List<DateTimePoint> { new(orderedTransactions[0].Date, 0d) };
+        var points = new List<LabeledDateTimePoint> { new(orderedTransactions[0].Date, 0d, "Starting balance") };
         decimal runningBalance = 0m;
 
         foreach (Transaction transaction in orderedTransactions)
         {
             runningBalance += transaction.Amount;
-            points.Add(new DateTimePoint(transaction.Date, (double)runningBalance));
+            points.Add(new LabeledDateTimePoint(transaction.Date, (double)runningBalance, transaction.Description, transaction.Amount));
         }
 
         return points;

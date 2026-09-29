@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         serviceCollection.AddSingleton<BalanceCheckpointRepository>();
         serviceCollection.AddSingleton<ImportBatchRepository>();
         serviceCollection.AddSingleton<CsvImportService>();
+        serviceCollection.AddSingleton<BillCsvImportService>();
 
         serviceCollection.AddSingleton(
             serviceProvider => new MainWindowViewModel(
@@ -46,6 +47,7 @@ public static class ServiceCollectionExtensions
                 transactionRepository: serviceProvider.GetRequiredService<TransactionRepository>(),
                 balanceCheckpointRepository: serviceProvider.GetRequiredService<BalanceCheckpointRepository>(),
                 csvImportService: serviceProvider.GetRequiredService<CsvImportService>(),
+                billCsvImportService: serviceProvider.GetRequiredService<BillCsvImportService>(),
                 isTesting: isTesting
             ));
 

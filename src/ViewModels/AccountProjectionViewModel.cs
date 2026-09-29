@@ -194,28 +194,32 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         // always the current computed balance - GetComputedBalanceAsync exists as a separately
         // testable/reusable piece of this formula (see BalanceCheckpointRepositoryTests), not as
         // the primary path here.
-        List<DateTimePoint> actualPoints = await _balanceCheckpointRepository.GetBalanceHistoryAsync(accountId, today);
+        List<LabeledDateTimePoint> actualPoints = await _balanceCheckpointRepository.GetBalanceHistoryAsync(accountId, today);
         decimal currentBalance = (decimal)actualPoints[^1].Value!;
         ComputedBalance = currentBalance;
 
         IEnumerable<ScheduledItem> scheduledItems = await _scheduledItemRepository.GetByAccountAsync(accountId);
         DateTime windowEnd = today.AddMonths(ProjectionWindowMonths);
-        List<DateTimePoint> projectedPoints = _projectionCalculator.BuildProjection(currentBalance, today, windowEnd, scheduledItems);
+        List<LabeledDateTimePoint> projectedPoints = _projectionCalculator.BuildProjection(currentBalance, today, windowEnd, scheduledItems);
 
-        var actualSeries = new LineSeries<DateTimePoint>
+        var actualSeries = new LineSeries<LabeledDateTimePoint>
         {
             Name = "Actual",
             Values = actualPoints,
             Fill = null,
-            GeometrySize = 8
+            GeometrySize = 8,
+            XToolTipLabelFormatter = point => point.Model!.DateTime.ToString("MMMM dd, yyyy"),
+            YToolTipLabelFormatter = point => FormatPointTooltip(point.Model!)
         };
 
-        var projectedSeries = new LineSeries<DateTimePoint>
+        var projectedSeries = new LineSeries<LabeledDateTimePoint>
         {
             Name = "Projected",
             Values = projectedPoints,
             Fill = null,
-            GeometrySize = 8
+            GeometrySize = 8,
+            XToolTipLabelFormatter = point => point.Model!.DateTime.ToString("MMMM dd, yyyy"),
+            YToolTipLabelFormatter = point => FormatPointTooltip(point.Model!)
         };
 
         Series = [actualSeries, projectedSeries];
@@ -225,6 +229,22 @@ public partial class AccountProjectionViewModel : ViewModelBase, IRoutableViewMo
         // overwritten here with a categorical Axis{Labels=...}, which rendered the curve fine but
         // left the x-axis with no visible date labels at all (Labels expects index-based lookups
         // that don't correspond to a date-scaled axis's actual tick positions).
+    }
+
+    /// <summary>
+    /// Formats a chart point's tooltip text: the label plus, when the point represents an
+    /// incremental movement (a bill/income occurrence or a transaction) rather than a hard reset
+    /// (a starting-balance anchor or a balance checkpoint), the signed amount that caused it.
+    /// </summary>
+    private static string FormatPointTooltip(LabeledDateTimePoint point)
+    {
+        decimal balance = (decimal)point.Value!;
+
+        if (point.Delta is null)
+            return $"{point.Label}: {balance:C}";
+
+        string sign = point.Delta.Value >= 0 ? "+" : "-";
+        return $"{point.Label}: {sign}{Math.Abs(point.Delta.Value):C} (balance {balance:C})";
     }
 
     /// <summary>

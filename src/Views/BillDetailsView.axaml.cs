@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using PockitBook.Models;
 using PockitBook.ViewModels;
@@ -21,6 +24,7 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
 
         AddBillButton = this.FindControl<Button>("AddBillButton");
         DeleteAllBillsButton = this.FindControl<Button>("DeleteAllBillsButton");
+        ImportBillsCsvButton = this.FindControl<Button>("ImportBillsCsvButton");
         ScheduledItemsGrid = this.FindControl<DataGrid>("ScheduledItemsGrid");
 
         this.WhenActivated(disposables =>
@@ -49,6 +53,8 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
 
         if (ScheduledItemsGrid is not null)
             ScheduledItemsGrid.CellEditEnded += OnCellEditEnded;
+
+        ImportBillsCsvButton.Click += OnImportBillsCsvClicked;
     }
 
     private async void OnCellEditEnded(object? sender, DataGridCellEditEndedEventArgs e)
@@ -58,5 +64,28 @@ public partial class BillDetailsView : ReactiveUserControl<BillDetailsViewModel>
 
         if (e.Row.DataContext is ScheduledItem item && ViewModel is not null)
             await ViewModel.UpdateBillAsync(item);
+    }
+
+    private async void OnImportBillsCsvClicked(object? sender, RoutedEventArgs e)
+    {
+        TopLevel? topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null || ViewModel is null)
+            return;
+
+        IReadOnlyList<IStorageFile> files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Import Bills CSV",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("CSV files") { Patterns = ["*.csv"] }]
+        });
+
+        if (files.Count == 0)
+            return;
+
+        string? localPath = files[0].TryGetLocalPath();
+        if (localPath is null)
+            return;
+
+        await ViewModel.ImportCsvAsync(localPath);
     }
 }

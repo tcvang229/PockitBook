@@ -24,6 +24,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         TransactionRepository transactionRepository,
         BalanceCheckpointRepository balanceCheckpointRepository,
         CsvImportService csvImportService,
+        BillCsvImportService billCsvImportService,
         bool isTesting = false)
     {
         GoToBillDetailsView = ReactiveCommand.CreateFromObservable(
@@ -40,6 +41,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         _transactionRepository = transactionRepository;
         _balanceCheckpointRepository = balanceCheckpointRepository;
         _csvImportService = csvImportService;
+        _billCsvImportService = billCsvImportService;
 
         if (!isTesting)
             _ = InitializeAsync();
@@ -72,6 +74,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     private readonly TransactionRepository _transactionRepository;
     private readonly BalanceCheckpointRepository _balanceCheckpointRepository;
     private readonly CsvImportService _csvImportService;
+    private readonly BillCsvImportService _billCsvImportService;
 
     private async Task InitializeAsync()
     {
@@ -105,7 +108,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
             // make async calls
             Constants.AppViews.HomeView => Router.Navigate.Execute(new HomeViewModel(this)),
             Constants.AppViews.BillDetailsView => Router.Navigate.Execute(
-                new BillDetailsViewModel(this, _accountRepository, _scheduledItemRepository)),
+                new BillDetailsViewModel(this, _accountRepository, _scheduledItemRepository, _billCsvImportService)),
             Constants.AppViews.AccountProjectionView => Router.Navigate.Execute(
                 new AccountProjectionViewModel(
                     this,

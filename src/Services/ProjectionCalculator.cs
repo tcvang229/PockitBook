@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LiveChartsCore.Defaults;
 using PockitBook.Models;
 
 namespace PockitBook.Services;
@@ -18,34 +17,34 @@ public class ProjectionCalculator
     /// forward through `windowEnd`, applying every active scheduled item's occurrences in that
     /// range in date order.
     /// </summary>
-    public List<DateTimePoint> BuildProjection(
+    public List<LabeledDateTimePoint> BuildProjection(
         decimal startingBalance,
         DateTime windowStart,
         DateTime windowEnd,
         IEnumerable<ScheduledItem> scheduledItems)
     {
-        List<(DateTime Date, decimal SignedAmount)> occurrences = scheduledItems
+        List<(DateTime Date, decimal SignedAmount, string Label)> occurrences = scheduledItems
             .Where(item => item.IsActive)
             .SelectMany(item => ExpandOccurrences(item, windowStart, windowEnd))
             .OrderBy(occurrence => occurrence.Date)
             .ToList();
 
-        List<DateTimePoint> points = new()
+        List<LabeledDateTimePoint> points = new()
         {
-            new DateTimePoint(windowStart, (double)startingBalance)
+            new LabeledDateTimePoint(windowStart, (double)startingBalance, "Starting balance")
         };
 
         decimal runningBalance = startingBalance;
-        foreach ((DateTime date, decimal signedAmount) in occurrences)
+        foreach ((DateTime date, decimal signedAmount, string label) in occurrences)
         {
             runningBalance += signedAmount;
-            points.Add(new DateTimePoint(date, (double)runningBalance));
+            points.Add(new LabeledDateTimePoint(date, (double)runningBalance, label, signedAmount));
         }
 
         return points;
     }
 
-    private static List<(DateTime Date, decimal SignedAmount)> ExpandOccurrences(
+    private static List<(DateTime Date, decimal SignedAmount, string Label)> ExpandOccurrences(
         ScheduledItem item,
         DateTime windowStart,
         DateTime windowEnd)
@@ -61,7 +60,7 @@ public class ProjectionCalculator
             _ => []
         };
 
-        var result = new List<(DateTime, decimal)>();
+        var result = new List<(DateTime, decimal, string)>();
         foreach (DateTime date in candidateDates)
         {
             if (date < windowStart || date > windowEnd)
@@ -71,7 +70,7 @@ public class ProjectionCalculator
             if (item.EndDate is not null && date > item.EndDate)
                 continue;
 
-            result.Add((date, signedAmount));
+            result.Add((date, signedAmount, item.Name));
         }
 
         return result;

@@ -17,11 +17,16 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     /// <summary>
     /// Constructor.
     /// </summary>
-    public BillDetailsViewModel(IScreen screen, AccountRepository accountRepository, ScheduledItemRepository scheduledItemRepository)
+    public BillDetailsViewModel(
+        IScreen screen,
+        AccountRepository accountRepository,
+        ScheduledItemRepository scheduledItemRepository,
+        BillCsvImportService billCsvImportService)
     {
         HostScreen = screen;
         _accountRepository = accountRepository;
         _scheduledItemRepository = scheduledItemRepository;
+        _billCsvImportService = billCsvImportService;
         AddBillCommand = ReactiveCommand.CreateFromTask(AddBillAsync);
         DeleteAllBillsCommand = ReactiveCommand.CreateFromTask(DeleteAllBillsAsync);
         DeleteBillCommand = ReactiveCommand.CreateFromTask<ScheduledItem>(DeleteBillAsync);
@@ -113,14 +118,25 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
         set => this.RaiseAndSetIfChanged(ref _validationError, value);
     }
 
+    /// <summary>
+    /// Feedback shown to the user after a bill CSV import.
+    /// </summary>
+    public string ImportStatusMessage
+    {
+        get => _importStatusMessage;
+        set => this.RaiseAndSetIfChanged(ref _importStatusMessage, value);
+    }
+
     private readonly AccountRepository _accountRepository;
     private readonly ScheduledItemRepository _scheduledItemRepository;
+    private readonly BillCsvImportService _billCsvImportService;
     private int? _accountId;
     private string _nameOfnewBill = string.Empty;
     private string _dueDay = string.Empty;
     private string _amountDue = string.Empty;
     private ScheduledItemType _selectedType = ScheduledItemType.Bill;
     private string _validationError = string.Empty;
+    private string _importStatusMessage = string.Empty;
 
     /// <summary>
     /// Resolves the primary account and loads its scheduled items.
@@ -245,6 +261,25 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
             EndDate = null,
             IsActive = true
         };
+    }
+
+    /// <summary>
+    /// Imports bills/income from a CSV file, adding them to whatever scheduled items already
+    /// exist for the primary account rather than replacing them - see BillCsvImportService for
+    /// the expected column format.
+    /// </summary>
+    public async Task ImportCsvAsync(string filePath)
+    {
+        if (_accountId is null)
+        {
+            ImportStatusMessage = "The account isn't ready yet - please try again in a moment.";
+            return;
+        }
+
+        BillCsvImportResult result = await _billCsvImportService.ImportAsync(_accountId.Value, filePath);
+        ImportStatusMessage = $"Imported {result.ImportedRows} of {result.TotalRows} rows ({result.SkippedRows} skipped).";
+
+        await SetScheduledItemsAsync();
     }
 
     /// <summary>
