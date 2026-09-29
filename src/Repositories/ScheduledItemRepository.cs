@@ -37,9 +37,9 @@ public class ScheduledItemRepository
         const string insertStatement =
             """
                 INSERT INTO scheduled_items
-                    (account_id, name, type, expected_amount, recurrence, anchor_date, start_date, end_date, category, is_active)
+                    (account_id, name, type, expected_amount, recurrence, anchor_date, start_date, end_date, category, is_active, date_adjustment)
                 VALUES
-                    (@AccountId, @Name, @Type, @ExpectedAmount, @Recurrence, @AnchorDate, @StartDate, @EndDate, @Category, @IsActive);
+                    (@AccountId, @Name, @Type, @ExpectedAmount, @Recurrence, @AnchorDate, @StartDate, @EndDate, @Category, @IsActive, @DateAdjustment);
             """;
 
         try
@@ -75,7 +75,8 @@ public class ScheduledItemRepository
                     start_date as StartDate,
                     end_date as EndDate,
                     category as Category,
-                    is_active as IsActive
+                    is_active as IsActive,
+                    date_adjustment as DateAdjustment
                 FROM
                     scheduled_items
                 WHERE
@@ -113,7 +114,8 @@ public class ScheduledItemRepository
                     start_date = @StartDate,
                     end_date = @EndDate,
                     category = @Category,
-                    is_active = @IsActive
+                    is_active = @IsActive,
+                    date_adjustment = @DateAdjustment
                 WHERE
                     id = @Id
             """;

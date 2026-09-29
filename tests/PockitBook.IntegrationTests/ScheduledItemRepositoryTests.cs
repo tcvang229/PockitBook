@@ -72,6 +72,32 @@ public class ScheduledItemRepositoryTests
     }
 
     [Fact]
+    public async Task AddAsync_BiweeklyItemWithDateAdjustment_RoundTripsThroughDatabase()
+    {
+        var (connection, accountId) = await SetupAsync();
+        using SqliteConnection _ = connection;
+
+        var salary = new ScheduledItem
+        {
+            AccountId = accountId,
+            Name = "Salary",
+            Type = ScheduledItemType.Income,
+            ExpectedAmount = 3098.78m,
+            Recurrence = RecurrenceType.Biweekly,
+            AnchorDate = new DateTime(2026, 9, 18),
+            StartDate = new DateTime(2026, 9, 18),
+            IsActive = true,
+            DateAdjustment = DateAdjustmentRule.NearestPriorBusinessDay
+        };
+
+        await _scheduledItemRepository.AddAsync(salary);
+        ScheduledItem reloaded = (await _scheduledItemRepository.GetByAccountAsync(accountId)).Single();
+
+        Assert.Equal(RecurrenceType.Biweekly, reloaded.Recurrence);
+        Assert.Equal(DateAdjustmentRule.NearestPriorBusinessDay, reloaded.DateAdjustment);
+    }
+
+    [Fact]
     public async Task DeleteAsync_RemovesOnlyTheSpecifiedRow()
     {
         var (connection, accountId) = await SetupAsync();

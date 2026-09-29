@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.Data.Sqlite;
@@ -79,7 +81,8 @@ public class SqliteDatabase
                         start_date TEXT NOT NULL,
                         end_date TEXT,
                         category TEXT,
-                        is_active INTEGER NOT NULL
+                        is_active INTEGER NOT NULL,
+                        date_adjustment INTEGER NOT NULL DEFAULT 0
                     );
 
                 CREATE TABLE IF NOT EXISTS transactions
@@ -112,6 +115,18 @@ public class SqliteDatabase
         try
         {
             await connection.ExecuteAsync(createTablesStatement);
+
+            // CREATE TABLE IF NOT EXISTS above only builds scheduled_items with the
+            // date_adjustment column for a brand-new database - an existing on-disk db from
+            // before this field was added still has the old, narrower table and needs the
+            // column added explicitly. Checked via PRAGMA table_info rather than a try/catch on
+            // ALTER TABLE's "duplicate column name" error, so this doesn't depend on matching
+            // SQLite's error message text.
+            IEnumerable<dynamic> scheduledItemColumns = await connection.QueryAsync("PRAGMA table_info(scheduled_items);");
+            bool hasDateAdjustmentColumn = scheduledItemColumns.Any(column => (string)column.name == "date_adjustment");
+            if (!hasDateAdjustmentColumn)
+                await connection.ExecuteAsync("ALTER TABLE scheduled_items ADD COLUMN date_adjustment INTEGER NOT NULL DEFAULT 0;");
+
             return null;
         }
         catch (Exception e)

@@ -22,8 +22,9 @@ public class BillDetailsViewModelTests
         var database = Substitute.For<SqliteDatabase>("", databaseLogger, false);
         var accountRepository = Substitute.For<AccountRepository>(database, Substitute.For<ILogger<AccountRepository>>());
         var scheduledItemRepository = Substitute.For<ScheduledItemRepository>(database, Substitute.For<ILogger<ScheduledItemRepository>>());
+        var billCsvImportService = Substitute.For<BillCsvImportService>(scheduledItemRepository, Substitute.For<ILogger<BillCsvImportService>>());
 
-        return new BillDetailsViewModel(iScreen, accountRepository, scheduledItemRepository);
+        return new BillDetailsViewModel(iScreen, accountRepository, scheduledItemRepository, billCsvImportService);
     }
 
     /// <summary>
@@ -113,5 +114,67 @@ public class BillDetailsViewModelTests
 
         Assert.NotNull(result);
         Assert.Equal(ScheduledItemType.Income, result.Type);
+    }
+
+    /// <summary>
+    /// Tests that BuildScheduledItem defaults to Monthly (day-of-month parsing, no date
+    /// adjustment) when no recurrence is passed - preserves the pre-recurrence-picker behavior
+    /// for existing callers.
+    /// </summary>
+    [Fact]
+    public void BuildScheduledItem_NoRecurrenceGiven_DefaultsToMonthlyWithNoDateAdjustment()
+    {
+        var sut = BuildSut();
+
+        var result = sut.BuildScheduledItem(TestAccountId, "Rent", "15", "1200", ScheduledItemType.Bill);
+
+        Assert.NotNull(result);
+        Assert.Equal(RecurrenceType.Monthly, result.Recurrence);
+        Assert.Equal(DateAdjustmentRule.None, result.DateAdjustment);
+    }
+
+    /// <summary>
+    /// Tests the biweekly-salary scenario: a real anchor date (rather than a day-of-month) is
+    /// parsed exactly, and Biweekly gets NearestPriorBusinessDay by default so a payday landing
+    /// on a weekend still projects sensibly.
+    /// </summary>
+    [Fact]
+    public void BuildScheduledItem_BiweeklyRecurrence_ParsesAnchorDateAndDefaultsDateAdjustment()
+    {
+        var sut = BuildSut();
+
+        var result = sut.BuildScheduledItem(TestAccountId, "Salary", "09/18/2026", "3098.78", ScheduledItemType.Income, RecurrenceType.Biweekly);
+
+        Assert.NotNull(result);
+        Assert.Equal(RecurrenceType.Biweekly, result.Recurrence);
+        Assert.Equal(new DateTime(2026, 9, 18), result.AnchorDate);
+        Assert.Equal(DateAdjustmentRule.NearestPriorBusinessDay, result.DateAdjustment);
+    }
+
+    /// <summary>
+    /// Tests that a non-Monthly recurrence with an unparseable date (rather than a day-of-month
+    /// number) is rejected rather than silently misinterpreted.
+    /// </summary>
+    [Fact]
+    public void BuildScheduledItem_BiweeklyRecurrence_InvalidDate_ReturnsNull()
+    {
+        var sut = BuildSut();
+
+        var result = sut.BuildScheduledItem(TestAccountId, "Salary", "not-a-date", "3000", ScheduledItemType.Income, RecurrenceType.Biweekly);
+
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// Tests that Monthly recurrence still rejects a full date string as a day-of-month input.
+    /// </summary>
+    [Fact]
+    public void BuildScheduledItem_MonthlyRecurrence_DateStringInsteadOfDay_ReturnsNull()
+    {
+        var sut = BuildSut();
+
+        var result = sut.BuildScheduledItem(TestAccountId, "Rent", "09/18/2026", "1200", ScheduledItemType.Bill, RecurrenceType.Monthly);
+
+        Assert.Null(result);
     }
 }

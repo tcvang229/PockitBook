@@ -14,7 +14,7 @@
             <TextBlock Text="{Binding ImportStatusMessage}" VerticalAlignment="Center" TextWrapping="Wrap"/>
         </StackPanel>
         <Grid RowDefinitions="*,*">
-            <Grid ColumnDefinitions="*,*,*,*,*" RowDefinitions="*,*">
+            <Grid ColumnDefinitions="*,*,*,*,*,*" RowDefinitions="*,*">
                 <TextBlock
                     Grid.Column="0"
                     Grid.Row="0"
@@ -22,17 +22,21 @@
                 <TextBlock
                     Grid.Column="1"
                     Grid.Row="0"
-                    Text="Day of Month"/>
+                    Text="Recurrence"/>
                 <TextBlock
                     Grid.Column="2"
                     Grid.Row="0"
-                    Text="Amount Due"/>
+                    Text="Due Day / Date"/>
                 <TextBlock
                     Grid.Column="3"
                     Grid.Row="0"
+                    Text="Amount Due"/>
+                <TextBlock
+                    Grid.Column="4"
+                    Grid.Row="0"
                     Text="Type"/>
                 <Button
-                    Grid.Column="4"
+                    Grid.Column="5"
                     Grid.Row="0"
                     Name="DeleteAllBillsButton"
                     Content="Remove All Bills"/>
@@ -41,23 +45,28 @@
                     Grid.Row="1"
                     Watermark="E.g., Health Insurance Bill"
                     Text="{Binding NameOfNewBill}" />
-                <TextBox
+                <ComboBox
                     Grid.Column="1"
                     Grid.Row="1"
-                    Watermark="E.g., 21"
-                    Text="{Binding DueDay}"/>
+                    ItemsSource="{x:Static vm:BillDetailsViewModel.RecurrenceTypeOptions}"
+                    SelectedItem="{Binding SelectedRecurrence}"/>
                 <TextBox
                     Grid.Column="2"
+                    Grid.Row="1"
+                    Watermark="{Binding AnchorInputWatermark}"
+                    Text="{Binding AnchorInput}"/>
+                <TextBox
+                    Grid.Column="3"
                     Grid.Row="1"
                     Watermark="E.g., 87.05"
                     Text="{Binding AmountDue}"/>
                 <ComboBox
-                    Grid.Column="3"
+                    Grid.Column="4"
                     Grid.Row="1"
                     ItemsSource="{x:Static vm:BillDetailsViewModel.ScheduledItemTypeOptions}"
                     SelectedItem="{Binding SelectedType}"/>
                 <Button
-                    Grid.Column="4"
+                    Grid.Column="5"
                     Grid.Row="1"
                     Name="AddBillButton"
                     Content="Add Bill"/>
@@ -84,6 +93,8 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Recurrence" Binding="{Binding Recurrence}" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Anchor Date" Binding="{Binding AnchorDate}" IsReadOnly="True"/>
                     <DataGridTextColumn Header="Due Day" Binding="{Binding DueDay, Mode=TwoWay}"/>
                     <DataGridTextColumn Header="Amount Due" Binding="{Binding ExpectedAmount, Mode=TwoWay}"/>
                     <DataGridTemplateColumn Header="">

@@ -61,13 +61,24 @@ public class ProjectionCalculator
         };
 
         var result = new List<(DateTime, decimal, string)>();
-        foreach (DateTime date in candidateDates)
+        foreach (DateTime rawDate in candidateDates)
         {
+            // StartDate/EndDate bound the *intended* cadence (they're compared against rawDate)
+            // rather than the adjusted date - e.g. a biweekly item whose StartDate equals its
+            // AnchorDate must still include that very first occurrence even when the adjustment
+            // shifts its displayed date a day or two earlier than StartDate.
+            if (rawDate < item.StartDate)
+                continue;
+            if (item.EndDate is not null && rawDate > item.EndDate)
+                continue;
+
+            // Adjusted here, per-occurrence, rather than by shifting AnchorDate itself - the
+            // interval/monthly math above always walks forward from the unshifted dates, so a
+            // weekend shift never compounds or drifts the underlying cadence. windowStart/
+            // windowEnd bound what's actually displayed, so they're checked against this real,
+            // adjusted date instead.
+            DateTime date = ApplyDateAdjustment(rawDate, item.DateAdjustment);
             if (date < windowStart || date > windowEnd)
-                continue;
-            if (date < item.StartDate)
-                continue;
-            if (item.EndDate is not null && date > item.EndDate)
                 continue;
 
             result.Add((date, signedAmount, item.Name));
@@ -75,6 +86,21 @@ public class ProjectionCalculator
 
         return result;
     }
+
+    /// <summary>
+    /// Applies a ScheduledItem's DateAdjustment rule to a single computed occurrence date.
+    /// </summary>
+    private static DateTime ApplyDateAdjustment(DateTime date, DateAdjustmentRule rule) =>
+        rule switch
+        {
+            DateAdjustmentRule.NearestPriorBusinessDay => date.DayOfWeek switch
+            {
+                DayOfWeek.Saturday => date.AddDays(-1),
+                DayOfWeek.Sunday => date.AddDays(-2),
+                _ => date
+            },
+            _ => date
+        };
 
     private static List<DateTime> ExpandInterval(DateTime anchorDate, int intervalDays, DateTime windowEnd)
     {

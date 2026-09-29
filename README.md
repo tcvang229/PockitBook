@@ -68,6 +68,25 @@ Only the Wells Fargo checking/savings/credit-card export format is supported
 Other formats (Capital One, loan servicers) and bank-API sync are explicitly out of scope for
 now; see the design doc above for the full cut list.
 
+## Bill CSV import
+
+The Bill Details page's "Import Bills CSV..." button lets `BillCsvImportService` add rows to
+`scheduled_items` from a CSV file - it *extends* whatever bills/income already exist rather than
+replacing them, so importing is always additive; use the grid's inline editing/Delete to clean up
+anything the import got wrong. Expected format (header row required):
+
+```
+Name,DueDay,Amount,Type
+Rent,1,2130,Bill
+Phone,4,100,Bill
+```
+
+`Type` ("Bill" or "Income", case-insensitive) is optional and defaults to `Bill` if blank or
+omitted. Every imported row becomes a Monthly-recurring, active `ScheduledItem` starting today,
+same as a row added by hand through the Add Bill form - other recurrences aren't supported by
+this import (or that form) yet. Unparseable rows are skipped and logged rather than failing the
+whole import, same tolerance as the transaction CSV import above.
+
 ## Bill Details grid editing
 
 The `scheduled_items` grid supports inline editing (click a cell) and a per-row Delete button.
@@ -80,11 +99,31 @@ itself clamps to a non-negative magnitude via `Math.Abs` in its setter, since th
 is applied separately by `ProjectionCalculator` - a negative `ExpectedAmount` would double-negate.
 A cell edit is committed to the database from `BillDetailsView`'s `DataGrid.CellEditEnded` handler.
 
+## Recurrence and movable pay dates
+
+The Add-bill row has a Recurrence picker (`Monthly`/`Weekly`/`Biweekly`/`OneTime`). For `Monthly`
+the anchor input is still a day-of-month (1-31); for every other recurrence it's a full date
+(e.g. `09/18/2026`), since interval-based cadences need a specific date to count from rather than
+a day-of-month. `BillDetailsViewModel.BuildScheduledItem` handles both parsings and defaults
+`recurrence` to `Monthly` so older call sites don't need updating.
+
+`ScheduledItem.DateAdjustment` (a `DateAdjustmentRule`) controls whether a projected occurrence
+date shifts when it lands on a weekend - `NearestPriorBusinessDay` moves a Saturday/Sunday
+occurrence back to the preceding Friday, matching how real payroll systems handle a payday that
+falls on a non-business day (e.g. a biweekly salary). `BuildScheduledItem` defaults this to
+`NearestPriorBusinessDay` for `Weekly`/`Biweekly` and `None` for `Monthly`/`OneTime` - it isn't
+user-configurable yet. `ProjectionCalculator` applies the shift per-occurrence, after the
+StartDate/EndDate bounds check (which uses the *unshifted* date, so a first occurrence whose
+StartDate equals its AnchorDate isn't excluded by its own shift) and before the window-range
+check (which uses the *shifted* date, since that's what's actually displayed). The underlying
+interval math always walks forward from the unshifted dates, so a shift never compounds or
+drifts the recurrence. Bank-holiday shifting is out of scope for now (would need a holiday
+calendar) - see the refactor design doc.
+
 ## Known issues / design notes
 
-- The Bill Details page only lets you create `Monthly` scheduled items (a day-of-month field).
-  `Weekly`/`Biweekly`/`OneTime` recurrence is fully supported by the schema and
-  `ProjectionCalculator`, just not yet exposed in that form.
+- `DateAdjustment` bank-holiday shifting isn't implemented, only the weekend case - a payday that
+  falls on a bank holiday still projects on that exact date rather than shifting earlier.
 - The projection window (`ProjectionWindowMonths` in `AccountProjectionViewModel`) is a
   hardcoded 2 months, not yet a user-facing setting.
 - Linking an actual `Transaction` to the `ScheduledItem` it fulfilled (`ScheduledItemId`) is

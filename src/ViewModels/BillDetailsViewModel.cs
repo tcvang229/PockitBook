@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Threading.Tasks;
 using PockitBook.Models;
 using PockitBook.Services;
@@ -59,6 +60,12 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     public static IEnumerable<ScheduledItemType> ScheduledItemTypeOptions { get; } = Enum.GetValues<ScheduledItemType>();
 
     /// <summary>
+    /// The selectable recurrence options, for binding to the add-row's Recurrence picker - same
+    /// static x:Static pattern as ScheduledItemTypeOptions.
+    /// </summary>
+    public static IEnumerable<RecurrenceType> RecurrenceTypeOptions { get; } = Enum.GetValues<RecurrenceType>();
+
+    /// <summary>
     /// Command to add the new item to the database.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> AddBillCommand { get; }
@@ -83,13 +90,37 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     }
 
     /// <summary>
-    /// Binding property for the DueDay element.
+    /// Binding property for the DueDay/anchor-date element - a day-of-month (e.g. "21") when
+    /// SelectedRecurrence is Monthly, or a full date (e.g. "09/18/2026") for every other
+    /// recurrence, which needs a specific calendar date rather than a day-of-month to anchor its
+    /// interval math to.
     /// </summary>
-    public string DueDay
+    public string AnchorInput
     {
-        get => _dueDay;
-        set => this.RaiseAndSetIfChanged(ref _dueDay, value);
+        get => _anchorInput;
+        set => this.RaiseAndSetIfChanged(ref _anchorInput, value);
     }
+
+    /// <summary>
+    /// Binding property for the new item's recurrence.
+    /// </summary>
+    public RecurrenceType SelectedRecurrence
+    {
+        get => _selectedRecurrence;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _selectedRecurrence, value);
+            this.RaisePropertyChanged(nameof(AnchorInputWatermark));
+        }
+    }
+
+    /// <summary>
+    /// The AnchorInput textbox's watermark, switching between a day-of-month example and a full
+    /// date example depending on SelectedRecurrence - manually raised from SelectedRecurrence's
+    /// setter since this is a derived, not backed, property.
+    /// </summary>
+    public string AnchorInputWatermark =>
+        SelectedRecurrence == RecurrenceType.Monthly ? "E.g., 21 (day of month)" : "E.g., 09/18/2026";
 
     /// <summary>
     /// Binding property for the AmountDue element.
@@ -132,9 +163,10 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     private readonly BillCsvImportService _billCsvImportService;
     private int? _accountId;
     private string _nameOfnewBill = string.Empty;
-    private string _dueDay = string.Empty;
+    private string _anchorInput = string.Empty;
     private string _amountDue = string.Empty;
     private ScheduledItemType _selectedType = ScheduledItemType.Bill;
+    private RecurrenceType _selectedRecurrence = RecurrenceType.Monthly;
     private string _validationError = string.Empty;
     private string _importStatusMessage = string.Empty;
 
@@ -162,10 +194,12 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
             return;
         }
 
-        ScheduledItem? scheduledItem = BuildScheduledItem(_accountId.Value, NameOfNewBill, DueDay, AmountDue, SelectedType);
+        ScheduledItem? scheduledItem = BuildScheduledItem(_accountId.Value, NameOfNewBill, AnchorInput, AmountDue, SelectedType, SelectedRecurrence);
         if (scheduledItem is null)
         {
-            ValidationError = "Enter a name, a day of month between 1 and 31, and a numeric amount.";
+            ValidationError = SelectedRecurrence == RecurrenceType.Monthly
+                ? "Enter a name, a day of month between 1 and 31, and a numeric amount."
+                : "Enter a name, a valid date (e.g. 09/18/2026), and a numeric amount.";
             return;
         }
 
@@ -179,7 +213,7 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
         ScheduledItems.Add(scheduledItem);
 
         NameOfNewBill = string.Empty;
-        DueDay = string.Empty;
+        AnchorInput = string.Empty;
         AmountDue = string.Empty;
     }
 
@@ -223,31 +257,54 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
     }
 
     /// <summary>
-    /// Tries to build a ScheduledItem model. A fixed Monthly recurrence is used here since
-    /// this page only collects a day-of-month; other recurrences are set directly in the
-    /// database until this page grows a fuller recurrence picker.
+    /// Tries to build a ScheduledItem model. Monthly interprets anchorInput as a day-of-month
+    /// (1-31, clamped into the current month); every other recurrence interprets it as a full
+    /// date, since a day-of-month alone can't anchor Weekly/Biweekly/OneTime's interval math -
+    /// e.g. a biweekly paycheck needs a specific date to count 14-day multiples from.
+    /// `recurrence` defaults to Monthly so existing callers (and tests) that don't pass it keep
+    /// their old day-of-month behavior unchanged.
     /// </summary>
     public ScheduledItem? BuildScheduledItem(
         int accountId,
         string nameOfNewBill,
-        string stringifiedDueDay,
+        string anchorInput,
         string stringifiedAmountDue,
-        ScheduledItemType type)
+        ScheduledItemType type,
+        RecurrenceType recurrence = RecurrenceType.Monthly)
     {
         if (string.IsNullOrWhiteSpace(nameOfNewBill))
             return null;
 
-        bool isDueDayOfMonthValid = int.TryParse(stringifiedDueDay, out int dueDay);
-        if (!isDueDayOfMonthValid || dueDay > 31 || dueDay < 1)
-            return null;
+        DateTime today = DateTime.Today;
+        DateTime anchorDate;
+
+        if (recurrence == RecurrenceType.Monthly)
+        {
+            bool isDueDayOfMonthValid = int.TryParse(anchorInput, out int dueDay);
+            if (!isDueDayOfMonthValid || dueDay > 31 || dueDay < 1)
+                return null;
+
+            int clampedDay = Math.Min(dueDay, DateTime.DaysInMonth(today.Year, today.Month));
+            anchorDate = new DateTime(today.Year, today.Month, clampedDay);
+        }
+        else
+        {
+            bool isAnchorDateValid = DateTime.TryParse(anchorInput, CultureInfo.InvariantCulture, DateTimeStyles.None, out anchorDate);
+            if (!isAnchorDateValid)
+                return null;
+        }
 
         bool isAmountDueValid = decimal.TryParse(stringifiedAmountDue, out decimal amountDue);
         if (!isAmountDueValid)
             return null;
 
-        DateTime today = DateTime.Today;
-        int clampedDay = Math.Min(dueDay, DateTime.DaysInMonth(today.Year, today.Month));
-        DateTime anchorDate = new(today.Year, today.Month, clampedDay);
+        // Weekly/Biweekly cadences (paychecks) commonly shift to the preceding business day when
+        // the computed date lands on a weekend - Monthly/OneTime items (rent, a one-off payment)
+        // don't share that convention. Not yet user-configurable - see
+        // ScheduledItem.DateAdjustment's doc comment.
+        DateAdjustmentRule dateAdjustment = recurrence is RecurrenceType.Weekly or RecurrenceType.Biweekly
+            ? DateAdjustmentRule.NearestPriorBusinessDay
+            : DateAdjustmentRule.None;
 
         return new ScheduledItem
         {
@@ -255,11 +312,12 @@ public partial class BillDetailsViewModel : ViewModelBase, IRoutableViewModel
             Name = nameOfNewBill,
             Type = type,
             ExpectedAmount = amountDue,
-            Recurrence = RecurrenceType.Monthly,
+            Recurrence = recurrence,
             AnchorDate = anchorDate,
             StartDate = today,
             EndDate = null,
-            IsActive = true
+            IsActive = true,
+            DateAdjustment = dateAdjustment
         };
     }
 

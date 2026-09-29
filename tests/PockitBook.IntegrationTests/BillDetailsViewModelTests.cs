@@ -5,6 +5,7 @@ using PockitBook.Repositories;
 using PockitBook.ViewModels;
 using Dapper;
 using PockitBook.Models;
+using System.IO;
 
 namespace PockitBook.IntegrationTests;
 
@@ -22,12 +23,14 @@ public class BillDetailsViewModelTests
         _database = _serviceProvider.GetRequiredService<SqliteDatabase>();
         _accountRepository = _serviceProvider.GetRequiredService<AccountRepository>();
         _scheduledItemRepository = _serviceProvider.GetRequiredService<ScheduledItemRepository>();
+        _billCsvImportService = _serviceProvider.GetRequiredService<BillCsvImportService>();
         _mainWindowViewModel = _serviceProvider.GetRequiredService<MainWindowViewModel>();
     }
 
     private readonly SqliteDatabase _database;
     private readonly AccountRepository _accountRepository;
     private readonly ScheduledItemRepository _scheduledItemRepository;
+    private readonly BillCsvImportService _billCsvImportService;
     private readonly ServiceProvider _serviceProvider;
     private readonly MainWindowViewModel _mainWindowViewModel;
 
@@ -62,10 +65,10 @@ public class BillDetailsViewModelTests
         var nameOfNewBill = "MyTestBill";
         var dueDay = "21";
         var amountDue = "3.7";
-        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository)
+        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository, _billCsvImportService)
         {
             NameOfNewBill = nameOfNewBill,
-            DueDay = dueDay,
+            AnchorInput = dueDay,
             AmountDue = amountDue
         };
         await viewModel.InitializeAsync();
@@ -113,10 +116,10 @@ public class BillDetailsViewModelTests
 
         var nameOfNewBill = "MyTestBill";
         var dueDay = "3131";
-        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository)
+        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository, _billCsvImportService)
         {
             NameOfNewBill = nameOfNewBill,
-            DueDay = dueDay
+            AnchorInput = dueDay
         };
         await viewModel.InitializeAsync();
 
@@ -156,7 +159,7 @@ public class BillDetailsViewModelTests
 
         await connection.ExecuteAsync(sqlCommand, new { AccountId = accountId, Today = today });
 
-        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository);
+        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository, _billCsvImportService);
         await viewModel.InitializeAsync();
 
         // Act
@@ -167,5 +170,45 @@ public class BillDetailsViewModelTests
         Assert.Equal("TestBill1", viewModel.ScheduledItems[0].Name);
         Assert.Equal("TestBill2", viewModel.ScheduledItems[1].Name);
         Assert.Equal("TestBill3", viewModel.ScheduledItems[2].Name);
+    }
+
+    /// <summary>
+    /// Tests that importing a bills CSV extends the existing scheduled items instead of
+    /// replacing them - a manually-added bill must survive the import alongside the CSV rows.
+    /// </summary>
+    [Fact]
+    public async Task ImportCsvAsync_ExistingBillPresent_ExtendsRatherThanReplaces()
+    {
+        // Assign
+        var (connection, _) = await SetupAsync();
+        using SqliteConnection _ = connection;
+
+        var viewModel = new BillDetailsViewModel(_mainWindowViewModel, _accountRepository, _scheduledItemRepository, _billCsvImportService)
+        {
+            NameOfNewBill = "ManuallyAddedBill",
+            AnchorInput = "10",
+            AmountDue = "50"
+        };
+        await viewModel.InitializeAsync();
+        await viewModel.AddBillAsync();
+
+        string csvPath = Path.GetTempFileName();
+        await File.WriteAllLinesAsync(csvPath, ["Name,DueDay,Amount,Type", "Rent,1,2130,Bill", "Phone,4,100,Bill"]);
+
+        try
+        {
+            // Act
+            await viewModel.ImportCsvAsync(csvPath);
+        }
+        finally
+        {
+            File.Delete(csvPath);
+        }
+
+        // Assert
+        Assert.Equal(3, viewModel.ScheduledItems.Count);
+        Assert.Contains(viewModel.ScheduledItems, item => item.Name == "ManuallyAddedBill");
+        Assert.Contains(viewModel.ScheduledItems, item => item.Name == "Rent");
+        Assert.Contains(viewModel.ScheduledItems, item => item.Name == "Phone");
     }
 }

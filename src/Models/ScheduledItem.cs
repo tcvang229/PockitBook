@@ -89,5 +89,14 @@ public record ScheduledItem
     /// </summary>
     public required bool IsActive { get; set; }
 
+    /// <summary>
+    /// How a projected occurrence date should be adjusted when it lands on a non-business day
+    /// (e.g. a weekend paycheck date shifted to the preceding Friday). Applied only to the
+    /// *displayed*/projected date - ProjectionCalculator's underlying cadence math always keeps
+    /// counting from the unshifted dates, so a shift never compounds or drifts the recurrence.
+    /// Not required (defaults to None) so existing construction sites don't need updating.
+    /// </summary>
+    public DateAdjustmentRule DateAdjustment { get; set; } = DateAdjustmentRule.None;
+
     private decimal _expectedAmount;
 }
